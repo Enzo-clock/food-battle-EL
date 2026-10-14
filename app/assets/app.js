@@ -1,0 +1,1 @@
+document.querySelectorAll('[data-delete]').forEach(function(button){button.addEventListener('click',function(){if(confirm('Supprimer ce plat ?')){alert('Ce plat ne peut pas être supprimé pour le moment.');}});});

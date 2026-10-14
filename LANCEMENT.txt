@@ -1,0 +1,9 @@
+FoodBattle — Prototype pédagogique local
+Prérequis : Docker avec Compose. Copier .env.example vers .env si besoin.
+Lancer : docker compose up --build
+Ouvrir : http://localhost:8080
+Arrêter : docker compose down
+Les données persistent dans le volume Docker. Le script SQL est exécuté uniquement sur une base vide.
+La documentation de reprise sera produite par votre équipe.
+Données fictives. Images d’illustration servies par Pexels ; connexion Internet nécessaire pour les photographies.
+Ce prototype pédagogique n’est pas destiné à être publié sur Internet.
