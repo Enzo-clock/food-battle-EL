@@ -1,0 +1,7 @@
+FoodBattle — Prototype local
+Prérequis : Docker avec Compose. Copier .env.example vers .env si besoin.
+Lancer : docker compose up --build
+Ouvrir : http://localhost:8080
+Arrêter : docker compose down
+Les données persistent dans le volume Docker. Le script SQL est exécuté uniquement sur une base vide.
+Données fictives. Images d’illustration servies par Pexels ; connexion Internet nécessaire pour les photographies.
