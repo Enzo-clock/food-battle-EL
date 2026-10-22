@@ -10,7 +10,7 @@ services:
       DB_USER: foodbattle
       DB_PASSWORD: foodbattle_local
     volumes:
-      - ./app:/var/www/html
+      - .:/var/www/html
     depends_on:
       db:
         condition: service_healthy
@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: foodbattle_local
     volumes:
       - foodbattle_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U foodbattle -d foodbattle" ]
       interval: 3s
