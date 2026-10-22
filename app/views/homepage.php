@@ -2,6 +2,10 @@
 $title = 'Accueil';
 require_once __DIR__ . '/../includes/header.php';
 
+require_once __DIR__ . '/../models/Battle.php';
+$teaserCat = array_rand(categories());
+$teaser = (new Battle($db))->randomDuel($teaserCat, null);
+
 $categories = categories();
 
 // --- Paramètres de recherche (validés) ------------------------------------
@@ -76,22 +80,24 @@ function filter_url(string $category, string $q): string
         <h1 class="hero__title">Deux plats.<br>Un seul gagnant.</h1>
         <p class="hero__lead">Explore les spots du quartier, note les plats et vote pour ton favori.</p>
         <div class="hero__actions">
-            <a class="btn btn--primary" href="#carte">Découvrir la carte</a>
-            <a class="btn btn--ghost" href="/classement.php">Voir le classement</a>
+            <a class="btn btn--primary" href="/duel">Lancer un duel</a>
+            <a class="btn btn--ghost" href="#carte">Découvrir la carte</a>
         </div>
     </div>
 
-    <?php /*temporairement false car battles non alimentées pour l'instant*/ if (false): ?>
-        <div class="hero__duel" aria-label="Duel au sommet : les deux plats les plus votés">
-            <?php foreach (array_slice($podium, 0, 2) as $i => $d): ?>
-                <a class="hero__card hero__card--<?= $i === 0 ? 'a' : 'b' ?>" href="/plat.php?id=<?= (int) $d['id'] ?>">
-                    <img src="<?= h(image_for($d['category'])) ?>" alt="" width="400" height="300" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'">
-                    <span><?= h($d['name']) ?></span>
-                </a>
-                <?php if ($i === 0): ?><span class="vs" aria-hidden="true">VS</span><?php endif ?>
-            <?php endforeach ?>
-        </div>
-    <?php endif ?>
+    
+    <?php if ($teaser): ?>
+    <a class="hero__duel" href="/duel?categorie=<?= h($teaserCat) ?>" aria-label="Lancer un duel <?= h(category_label($teaserCat)) ?>">
+        <?php foreach ($teaser as $i => $d): ?>
+            <span class="hero__card hero__card--<?= $i === 0 ? 'a' : 'b' ?>">
+                <img src="<?= h($d['picture'] ?: image_for($teaserCat)) ?>" alt="" width="400" height="300" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'">
+                <span><?= h($d['name']) ?></span>
+            </span>
+            <?php if ($i === 0): ?><span class="vs" aria-hidden="true">VS</span><?php endif ?>
+        <?php endforeach ?>
+    </a>
+<?php endif ?>
+
 </section>
 
 <section class="band" aria-label="Chiffres clés">
