@@ -3,10 +3,13 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/functions.php';
 
-$currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+// Avec le front controller, SCRIPT_NAME vaut toujours index.php :
+// on compare donc le chemin de l'URL pour savoir quel lien est actif.
+$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $navLinks = [
-    'index.php'      => ['href' => '/',               'label' => 'Accueil'],
-    'classement.php' => ['href' => '/classement.php', 'label' => 'Classement'],
+    '/'               => 'Accueil',
+    '/duel'           => 'Duels',
+    '/classement.php' => 'Classement',
 ];
 ?>
 <!doctype html>
@@ -31,8 +34,8 @@ $navLinks = [
                 FoodBattle
             </a>
             <nav class="site-nav" aria-label="Navigation principale">
-                <?php foreach ($navLinks as $file => $link): ?>
-                    <a href="<?= $link['href'] ?>" <?= $currentPage === $file ? 'aria-current="page"' : '' ?>><?= $link['label'] ?></a>
+                <?php foreach ($navLinks as $href => $label): ?>
+                    <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
                 <?php endforeach ?>
                 <a class="btn btn--dark btn--sm" href="/#carte">Voir la carte</a>
             </nav>
