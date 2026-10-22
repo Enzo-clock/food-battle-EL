@@ -1,7 +1,6 @@
 <?php
 $title = 'Accueil';
-require 'includes/header.php';
-require 'includes/db.php';
+require_once __DIR__ . '/../includes/header.php';
 
 $categories = categories();
 
@@ -240,4 +239,4 @@ function filter_url(string $category, string $q): string
     <?php endif ?>
 </section>
 
-<?php require 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
