@@ -27,7 +27,7 @@ $navLinks = [
     <header class="site-header">
         <div class="site-header__inner">
             <a class="logo" href="/" aria-label="FoodBattle, accueil">
-                <span class="logo__mark" aria-hidden="true"><span></span><span></span></span>
+                <img class="logo__img" src="/assets/images/logo_fb_v1.svg" alt="" width="40" height="40">
                 FoodBattle
             </a>
             <nav class="site-nav" aria-label="Navigation principale">
