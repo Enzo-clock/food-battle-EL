@@ -24,7 +24,7 @@ if ($path === '/duel/vote' && $method === 'POST') {
     exit;
 }
 
-if ($path === '/signup' && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'], true)) {
+if ($path === '/signup' && in_array($method, ['GET', 'POST'], true)) {
     require_once __DIR__ . '/../app/controllers/AuthController.php';
     (new AuthController($db))->signup();
     exit;
@@ -44,7 +44,7 @@ if ($path === '/logout' && $method === 'POST') {
     exit;
 }
 
-// Pages de contenu (footer)
+// Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',
     '/confidentialite'  => 'privacy',
