@@ -12,29 +12,33 @@ if (!array_key_exists($cat, $categories)) {
     $cat = '';
 }
 
-// Note moyenne : seuls les avis publiés comptent (les avis « pending » faussaient la moyenne).
-$statsColumns = "(SELECT AVG(r.score) FROM ratings r WHERE r.dish_id = d.id AND r.status = 'published') AS average,
-                 (SELECT COUNT(*) FROM votes v WHERE v.dish_id = d.id) AS votes";
-
-// --- Chiffres clés ----------------------------------------------------------
 $stats = $db->query(
-    'SELECT (SELECT COUNT(*) FROM dishes) AS dishes,
-            (SELECT COUNT(*) FROM establishments) AS establishments,
-            (SELECT COUNT(*) FROM votes) AS votes'
+    'SELECT
+        (SELECT COUNT(*) FROM dishes) AS dishes,
+        (SELECT COUNT(*) FROM establishments) AS establishments,
+        (SELECT COUNT(*) FROM categories) AS categories'
 )->fetch();
 
-// --- Podium : les 3 plats les plus votés -----------------------------------
-$podium = $db->query(
-    "SELECT d.id, d.name, d.category, e.name AS restaurant, $statsColumns
-     FROM dishes d JOIN establishments e ON e.id = d.establishment_id
-     ORDER BY votes DESC, d.id
-     LIMIT 3"
-)->fetchAll();
+$sql = "
+    SELECT
+        d.*,
+        e.name AS restaurant,
+        e.city,
+        cat_data.primary_category,
+        cat_data.categories_json
+    FROM dishes d
+    LEFT JOIN establishments e ON e.id = d.establishment_id
+    LEFT JOIN LATERAL (
+        SELECT
+            MIN(c.name) AS primary_category,
+            json_agg(c.name ORDER BY c.name)::text AS categories_json
+        FROM dish_categories dc
+        JOIN categories c ON c.id = dc.category_id
+        WHERE dc.dish_id = d.id
+    ) cat_data ON TRUE
+    WHERE TRUE
+";
 
-// --- Catalogue filtré ---------------------------------------------------------
-$sql = "SELECT d.*, e.name AS restaurant, e.city, $statsColumns
-        FROM dishes d JOIN establishments e ON e.id = d.establishment_id
-        WHERE 1 = 1";
 $params = [];
 if ($q !== '') {
     // Recherche sur le plat ET l'établissement, comme l'annonce le placeholder.
@@ -43,7 +47,15 @@ if ($q !== '') {
     array_push($params, $like, $like);
 }
 if ($cat !== '') {
-    $sql .= ' AND d.category = ?';
+    $sql .= "
+        AND EXISTS (
+            SELECT 1
+            FROM dish_categories dc
+            JOIN categories c ON c.id = dc.category_id
+            WHERE dc.dish_id = d.id
+              AND c.name = ?
+        )
+    ";
     $params[] = $cat;
 }
 $sql .= ' ORDER BY d.id';
@@ -70,7 +82,7 @@ function filter_url(string $category, string $q): string
         </div>
     </div>
 
-    <?php if (count($podium) >= 2): ?>
+    <?php /*temporairement false car battles non alimentées pour l'instant*/ if (false): ?>
         <div class="hero__duel" aria-label="Duel au sommet : les deux plats les plus votés">
             <?php foreach (array_slice($podium, 0, 2) as $i => $d): ?>
                 <a class="hero__card hero__card--<?= $i === 0 ? 'a' : 'b' ?>" href="/plat.php?id=<?= (int) $d['id'] ?>">
@@ -87,7 +99,8 @@ function filter_url(string $category, string $q): string
     <div class="band__inner">
         <p><strong><?= (int) $stats['dishes'] ?></strong><span>plats<br>en compétition</span></p>
         <p><strong><?= (int) $stats['establishments'] ?></strong><span>établissements<br>du quartier</span></p>
-        <p><strong><?= (int) $stats['votes'] ?></strong><span>votes<br>enregistrés</span></p>
+        <p><strong><?= (int) $stats['categories'] ?></strong><span>catégories<br>de plats</span></p>
+
     </div>
 </section>
 
@@ -109,7 +122,7 @@ function filter_url(string $category, string $q): string
     </ol>
 </section>
 
-<?php if ($podium): ?>
+<?php /*temporairement false car battles non alimentées pour l'instant*/ if (false): ?>
     <section class="section" aria-labelledby="podium-title">
         <div class="section__head">
             <h2 id="podium-title" class="section__title">Le podium</h2>
@@ -153,22 +166,68 @@ function filter_url(string $category, string $q): string
         <?php if ($q !== '' || $cat !== ''): ?> · <a href="/#carte">Réinitialiser</a><?php endif ?>
     </p>
 
-    <?php if ($dishes): ?>
+<?php if ($dishes): ?>
         <div class="dish-grid">
             <?php foreach ($dishes as $d): ?>
+                <?php
+                $primaryCategory = $d['primary_category'];
+                $tone = $categories[$primaryCategory]['tone'] ?? 'lilac';
+                $image = $d['picture'] ?: image_for($primaryCategory ?? '');
+
+                $categoryKeys = $d['categories_json']
+                    ? json_decode($d['categories_json'], true)
+                    : [];
+
+                $categoryNames = array_map(
+                    static fn(string $key): string => category_label($key),
+                    $categoryKeys ?: []
+                );
+
+                $categoryText = $categoryNames
+                    ? implode(' · ', $categoryNames)
+                    : 'Sans catégorie';
+                ?>
+
                 <article class="dish-card">
-                    <img class="dish-card__img tone-<?= category_tone($d['category']) ?>" src="<?= h(image_for($d['category'])) ?>" alt="" width="400" height="300" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'">
+                    <img
+                        class="dish-card__img tone-<?= h($tone) ?>"
+                        src="<?= h($image) ?>"
+                        alt=""
+                        width="400"
+                        height="300"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'"
+                    >
+
                     <div class="dish-card__body">
-                        <span class="tag tone-<?= category_tone($d['category']) ?>"><?= h(category_label($d['category'])) ?></span>
-                        <h3><a href="/plat.php?id=<?= (int) $d['id'] ?>"><?= h($d['name']) ?></a></h3>
-                        <p class="dish-card__place"><?= h($d['restaurant']) ?> · <?= h($d['city']) ?></p>
-                        <p class="dish-card__desc"><?= h($d['description']) ?></p>
-                        <p class="dish-card__meta">
-                            <strong><?= euro($d['price']) ?></strong>
-                            <span>★ <?= rating_label($d['average']) ?>/5</span>
-                            <span><?= (int) $d['votes'] ?> vote<?= $d['votes'] > 1 ? 's' : '' ?></span>
+                        <span class="tag tone-<?= h($tone) ?>"><?= h($categoryText) ?></span>
+
+                        <h3>
+                            <a href="/plat.php?id=<?= (int) $d['id'] ?>">
+                                <?= h($d['name']) ?>
+                            </a>
+                        </h3>
+
+                        <p class="dish-card__place">
+                            <?= h($d['restaurant'] ?: 'Plat maison') ?>
+                            <?php if (!empty($d['city'])): ?>
+                                · <?= h($d['city']) ?>
+                            <?php endif ?>
                         </p>
-                        <a class="btn btn--ghost btn--block" href="/plat.php?id=<?= (int) $d['id'] ?>">Découvrir et voter</a>
+
+                        <?php if (!empty($d['description'])): ?>
+                            <p class="dish-card__desc"><?= h($d['description']) ?></p>
+                        <?php endif ?>
+
+                        <p class="dish-card__meta">
+                            <strong>
+                                <?= $d['price'] !== null ? euro($d['price']) : 'Prix non renseigné' ?>
+                            </strong>
+                        </p>
+
+                        <a class="btn btn--ghost btn--block" href="/plat.php?id=<?= (int) $d['id'] ?>">
+                            Découvrir
+                        </a>
                     </div>
                 </article>
             <?php endforeach ?>
