@@ -40,14 +40,7 @@ $navName = $_SESSION['username'] ?? '';
                 <?php foreach ($navLinks as $href => $label): ?>
                     <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
                 <?php endforeach ?>
-                <details class="site-nav__dropdown">
-                    <summary <?= $currentPath === '/restaurant/creer' ? 'aria-current="page"' : '' ?>>
-                        Ajouter
-                    </summary>
-                    <div class="site-nav__menu">
-                        <a href="/restaurant/creer">Ajouter un restaurant</a>
-                    </div>
-                </details>
+
                 <?php if ($navIsLogged): ?>
                     <span class="site-nav__user">Salut <?= h($navName ?? '') ?> !</span>
                     <form class="site-nav__logout" method="post" action="/logout">
