@@ -50,6 +50,12 @@ if ($path === '/restaurant/creer' && in_array($method, ['GET', 'POST'], true)) {
     exit;
 }
 
+if ($path === '/plat/creer' && in_array($method, ['GET', 'POST'], true)) {
+    require_once __DIR__ . '/../app/controllers/DishController.php';
+    (new DishController($db))->create();
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',
