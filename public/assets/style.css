@@ -1,11 +1,19 @@
 /* ==========================================================================
    FoodBattle — thème néo-brutaliste (V2)
-   1. Tokens   2. Base   3. Layout   4. Composants   5. Accueil
-   6. Pages existantes (classement, fiche, dashboard…)   7. Responsive / a11y
-   8. Page duel   9. Connexion / inscription   10. Pages de contenu
+
+   1. Tokens               5. Accueil                  9. Pages de contenu
+   2. Base                 6. Page duel               10. Dock flottant (connecté)
+   3. Layout               7. Connexion / inscription 11. Pages héritées (ancien code)
+   4. Composants           8. Pages de création
+
+   Chaque section contient ses propres règles responsive à sa fin,
+   pour qu'on n'ait jamais à chercher une même règle à deux endroits.
    ========================================================================== */
 
-/* 1. Tokens ---------------------------------------------------------------- */
+/* ==========================================================================
+   1. Tokens (couleurs, bordures, ombres, rayons, typo)
+   ========================================================================== */
+
 :root {
     --ink: #111111;
     --cream: #FFF7E8;
@@ -39,11 +47,29 @@
     --gutter: 24px;
 }
 
-/* 2. Base ------------------------------------------------------------------ */
+/* sur mobile : bordures et ombres plus fines, marges réduites */
+@media (max-width: 700px) {
+    :root {
+        --border-w: 2px;
+        --shadow-offset: 4px;
+        --gutter: 16px;
+    }
+}
+
+/* ==========================================================================
+   2. Base (reset léger, éléments HTML)
+   ========================================================================== */
+
 *,
 *::before,
 *::after {
     box-sizing: border-box;
+}
+
+/* overflow posé sur html ET body : sur body seul, le navigateur le transfère à la fenêtre
+   au lieu de couper le contenu (règle de « propagation » d'overflow) */
+html {
+    overflow-x: clip;
 }
 
 body {
@@ -57,6 +83,8 @@ body {
     display: flex;
     flex-direction: column;
     /* header, main, footer empilés */
+    overflow-x: clip;
+    /* coupe les coins de la bande inclinée de l'accueil, qui dépassaient de 2 px */
 }
 
 h1,
@@ -74,10 +102,10 @@ p {
 img {
     max-width: 100%;
     height: auto;
+    /* height:auto pour que aspect-ratio l'emporte sur l'attribut height */
     display: block;
 }
 
-/* height:auto pour que aspect-ratio l'emporte sur l'attribut height */
 a {
     color: var(--ink);
 }
@@ -108,7 +136,19 @@ a:hover {
     top: 12px;
 }
 
-/* 3. Layout ---------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+    }
+}
+
+/* ==========================================================================
+   3. Layout (header, navigation, contenu, footer, sections)
+   ========================================================================== */
+
 .site-header {
     border-bottom: var(--border);
     background: var(--cream);
@@ -241,7 +281,30 @@ a:hover {
     margin-bottom: 0;
 }
 
-/* 4. Composants ------------------------------------------------------------ */
+@media (max-width: 700px) {
+
+    /* le bouton « Jouer » est porté par le hero et le dock */
+    .site-nav .btn {
+        display: none;
+    }
+
+    /* la nav est déjà pleine sur mobile : l'inscription reste accessible depuis la page Connexion */
+    .site-nav__signup,
+    .site-nav__user {
+        display: none;
+    }
+
+    .section {
+        padding-top: 56px;
+    }
+}
+
+/* ==========================================================================
+   4. Composants réutilisables
+   ========================================================================== */
+
+/* --- Boutons --------------------------------------------------------------- */
+
 .btn,
 .button {
     display: inline-flex;
@@ -302,6 +365,8 @@ a:hover {
     width: 100%;
 }
 
+/* --- Étiquettes, cartes, couleurs ------------------------------------------ */
+
 .pill,
 .tag {
     display: inline-block;
@@ -353,6 +418,8 @@ a:hover {
     font-weight: 800;
 }
 
+/* --- Filtres en pastilles -------------------------------------------------- */
+
 .chips {
     display: flex;
     flex-wrap: wrap;
@@ -397,6 +464,8 @@ a:hover {
     transform: none;
 }
 
+/* --- Champs de formulaire (base) ------------------------------------------- */
+
 input,
 select,
 textarea {
@@ -419,7 +488,99 @@ label {
     font-weight: 600;
 }
 
-/* 5. Accueil --------------------------------------------------------------- */
+/* --- Touches clavier ------------------------------------------------------- */
+
+kbd {
+    display: inline-block;
+    padding: 0 6px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+/* --- Messages (succès / erreur) -------------------------------------------- */
+
+.message {
+    padding: 14px 18px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--mint);
+    font-weight: 600;
+    margin: 16px 0;
+}
+
+[role="alert"] {
+    padding: 14px 18px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--pink);
+    font-weight: 600;
+    margin: 16px 0;
+}
+
+/* --- Tableaux -------------------------------------------------------------- */
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin: 16px 0 32px;
+}
+
+th,
+td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #EDE6D6;
+}
+
+th {
+    background: var(--cream);
+    font-size: 13px;
+    text-transform: uppercase;
+    border-bottom: var(--border);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+@media (max-width: 700px) {
+
+    /* le tableau défile horizontalement au lieu de déborder */
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .btn:hover,
+    .button:hover,
+    .chip:hover,
+    .btn:active,
+    .button:active {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   5. Accueil (/)
+   ========================================================================== */
+
+/* --- Hero et aperçu de duel ------------------------------------------------ */
+
 .hero {
     display: flex;
     flex-wrap: wrap;
@@ -519,6 +680,8 @@ label {
     transform: rotate(-8deg);
 }
 
+/* --- Bande des chiffres ---------------------------------------------------- */
+
 .band {
     margin-inline: calc(50% - 50vw);
     background: var(--ink);
@@ -552,6 +715,8 @@ label {
     line-height: 1.3;
 }
 
+/* --- Comment ça marche ----------------------------------------------------- */
+
 .steps {
     list-style: none;
     margin: 0;
@@ -576,6 +741,8 @@ label {
 .steps h3 {
     font-size: 20px;
 }
+
+/* --- Podium ---------------------------------------------------------------- */
 
 .podium {
     list-style: none;
@@ -642,7 +809,6 @@ label {
     justify-content: center;
     border: var(--border);
     border-radius: 0 0 var(--radius) var(--radius);
-    /*box-shadow: var(--shadow);*/
     font-size: 64px;
     font-weight: 800;
 }
@@ -661,6 +827,8 @@ label {
     height: 100px;
     background: var(--orange);
 }
+
+/* --- Recherche et carte des plats ------------------------------------------ */
 
 .search {
     display: flex;
@@ -773,241 +941,8 @@ label {
     gap: 16px;
 }
 
-/* 6. Pages existantes (thème appliqué sans modifier leur HTML) ------------- */
-.intro {
-    padding: 32px;
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    background: var(--lemon);
-    margin-bottom: 32px;
-}
-
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-    gap: 28px;
-}
-
-.cards article {
-    background: var(--white);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-
-.cards img {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    border-bottom: var(--border);
-}
-
-.cardbody {
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 14px;
-    margin-bottom: 20px;
-}
-
-.filters label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.detail {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 32px;
-    align-items: start;
-    padding: 24px;
-    background: var(--white);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    margin: 16px 0 32px;
-}
-
-.detail>img {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    border: var(--border);
-    border-radius: 14px;
-}
-
-.detail>div {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-}
-
-.detail button {
-    min-height: 52px;
-    padding: 0 24px;
-    border: var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--yellow);
-    box-shadow: var(--shadow-sm);
-    font: inherit;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.rating {
-    font-weight: 600;
-}
-
-.message {
-    padding: 14px 18px;
-    border: var(--border);
-    border-radius: 14px;
-    background: var(--mint);
-    font-weight: 600;
-    margin: 16px 0;
-}
-
-[role="alert"] {
-    padding: 14px 18px;
-    border: var(--border);
-    border-radius: 14px;
-    background: var(--pink);
-    font-weight: 600;
-    margin: 16px 0;
-}
-
-.reviewform {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-width: 560px;
-    padding: 24px;
-    background: var(--white);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    margin: 16px 0 32px;
-}
-
-.reviewform label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.reviewform button {
-    align-self: flex-start;
-    min-height: 48px;
-    padding: 0 24px;
-    border: var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--yellow);
-    box-shadow: var(--shadow-sm);
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.review {
-    padding: 16px 18px;
-    background: var(--white);
-    border: var(--border);
-    border-radius: 16px;
-    margin-bottom: 12px;
-}
-
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: var(--white);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    margin: 16px 0 32px;
-}
-
-th,
-td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 2px solid #EDE6D6;
-}
-
-th {
-    background: var(--cream);
-    font-size: 13px;
-    text-transform: uppercase;
-    border-bottom: var(--border);
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-.subnav {
-    padding: 12px 18px;
-    border: var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--white);
-    margin: 16px 0;
-    display: inline-flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-details {
-    margin: 16px 0;
-}
-
-details>summary {
-    cursor: pointer;
-    font-weight: 700;
-    padding: 12px 0;
-}
-
-.delete {
-    min-height: 40px;
-    padding: 0 14px;
-    border: 2px solid var(--ink);
-    border-radius: var(--radius-pill);
-    background: var(--pink);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-/* 7. Responsive / accessibilité -------------------------------------------- */
 @media (max-width: 700px) {
-    :root {
-        --border-w: 2px;
-        --shadow-offset: 4px;
-        --gutter: 16px;
-    }
 
-    .site-nav .btn {
-        display: none;
-    }
-
-    /* La nav est déjà pleine sur mobile : l'inscription reste accessible depuis la page Connexion */
-    .site-nav__signup,
-    .site-nav__user {
-        display: none;
-    }
-
-    /* la carte reste accessible via le CTA du hero */
     .hero {
         gap: 32px;
         padding-bottom: 40px;
@@ -1036,10 +971,6 @@ details>summary {
         font-size: 36px;
     }
 
-    .section {
-        padding-top: 56px;
-    }
-
     .podium {
         grid-template-columns: 1fr;
     }
@@ -1054,50 +985,11 @@ details>summary {
         height: 56px !important;
         font-size: 32px;
     }
-
-    .detail {
-        grid-template-columns: 1fr;
-    }
-
-    table {
-        display: block;
-        overflow-x: auto;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
-        transition: none !important;
-    }
-
-    .btn:hover,
-    .button:hover,
-    .chip:hover,
-    .btn:active,
-    .button:active {
-        transform: none;
-    }
 }
 
 /* ==========================================================================
-   8. Page duel (/duel)
+   6. Page duel (/duel)
    ========================================================================== */
-
-kbd {
-    display: inline-block;
-    padding: 0 6px;
-    border: 2px solid var(--ink);
-    border-radius: 6px;
-    background: var(--white);
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.5;
-}
 
 .duel-head {
     display: flex;
@@ -1141,7 +1033,7 @@ kbd {
     align-items: start;
 }
 
-/* --- Carte de duel (partial réutilisable) ------------------------------- */
+/* --- Carte de duel (partial réutilisable) ---------------------------------- */
 
 .battle {
     display: grid;
@@ -1272,7 +1164,7 @@ kbd {
     margin: 0 -20px;
 }
 
-/* --- Après le vote ------------------------------------------------------ */
+/* --- Après le vote --------------------------------------------------------- */
 
 .duel-result {
     margin-top: 32px;
@@ -1335,7 +1227,7 @@ kbd {
     margin: 32px 0 0;
 }
 
-/* --- Colonne « Ta session » --------------------------------------------- */
+/* --- Colonne « Ta session » ------------------------------------------------ */
 
 .duel-side {
     display: flex;
@@ -1451,9 +1343,8 @@ kbd {
     }
 }
 
-
 /* ==========================================================================
-   9. Connexion / inscription (/login, /signup)
+   7. Connexion / inscription (/login, /signup)
    ========================================================================== */
 
 .auth {
@@ -1549,9 +1440,408 @@ kbd {
     }
 }
 
+/* ==========================================================================
+   8. Pages de création (/restaurant/creer, /plat/creer)
+   ========================================================================== */
+
+.create-page {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.create-page__head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.create-page__title {
+    font-size: clamp(32px, 4.5vw, 52px);
+}
+
+.create-page__lead {
+    max-width: 60ch;
+    font-size: 17px;
+}
+
+.create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 28px;
+}
+
+.create-form__legend {
+    font-size: 14px;
+}
+
+.create-form__legend span,
+.field__req {
+    color: var(--danger);
+    font-weight: 800;
+}
+
+/* deux colonnes : champs à gauche, photo à droite */
+.create-form__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+}
+
+.create-form__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.create-form__group {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.create-form__group legend {
+    margin-bottom: 4px;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-weight: 600;
+}
+
+.field input,
+.field textarea {
+    width: 100%;
+    margin: 0;
+    border: var(--border);
+    border-radius: 12px;
+    background: var(--white);
+    font: inherit;
+}
+
+.field input {
+    min-height: 50px;
+    padding: 0 14px;
+}
+
+.field textarea {
+    min-height: 120px;
+    padding: 12px 14px;
+    resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+    color: #8A8478;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+    outline: 3px solid var(--teal);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* champ invalide, seulement après que l'utilisateur l'a modifié */
+.field input:user-invalid,
+.field textarea:user-invalid {
+    border-color: var(--danger);
+}
+
+/* « (facultatif) » : discret, en minuscules même dans une légende en capitales */
+.field__opt {
+    font-size: 13px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.field__hint,
+.field__counter {
+    font-size: 13px;
+}
+
+.field__counter {
+    align-self: flex-end;
+    margin-top: -2px;
+    color: #6B665C;
+}
+
+.field__counter.is-near {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.field__warn {
+    display: block;
+    margin-top: 4px;
+    color: var(--danger);
+}
+
+/* --- Zone photo ------------------------------------------------------------ */
+
+.dropzone {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: var(--border-w) dashed var(--ink);
+    border-radius: var(--radius);
+    background: var(--cream);
+    transition: background .12s ease;
+}
+
+.dropzone:hover,
+.dropzone.is-dragover {
+    background: var(--lemon);
+}
+
+/* focus clavier visible sur toute la zone */
+.dropzone:has(.dropzone__input:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px var(--yellow);
+}
+
+/* le vrai champ fichier couvre la zone : clic, glisser-déposer et clavier natifs */
+.dropzone__input {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.dropzone__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px;
+    text-align: center;
+}
+
+.dropzone__empty small {
+    font-size: 13px;
+}
+
+.dropzone__preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dropzone__preview[hidden],
+.dropzone__empty[hidden] {
+    display: none;
+}
+
+/* --- Menu déroulant et prix (ajout de plat) -------------------------------- */
+
+.field select {
+    width: 100%;
+    min-height: 50px;
+    margin: 0;
+    padding: 0 40px 0 14px;
+    border: var(--border);
+    border-radius: 12px;
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
+    font: inherit;
+    appearance: none;
+    cursor: pointer;
+}
+
+.field select:focus-visible {
+    outline: 3px solid var(--teal);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* prix : champ court avec « € » collé à droite */
+.field--price .field__affix {
+    position: relative;
+    max-width: 200px;
+}
+
+.field--price input {
+    padding-right: 40px;
+}
+
+.field__suffix {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 700;
+    pointer-events: none;
+}
+
+/* --- Cases de catégories (ajout de plat) ----------------------------------- */
+
+.choice-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.choice {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 16px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--white);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .08s ease, box-shadow .08s ease, background .12s ease;
+}
+
+.choice:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* la vraie case à cocher, stylée en carré néo-brutaliste */
+.choice input {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: var(--border);
+    border-radius: 6px;
+    background: var(--white);
+    appearance: none;
+    cursor: pointer;
+}
+
+.choice input:checked {
+    background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") no-repeat center / 16px;
+}
+
+.choice input:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--yellow);
+}
+
+/* case cochée : la carte prend la couleur de la catégorie */
+.choice--peach:has(input:checked) {
+    background: var(--peach);
+}
+
+.choice--mint:has(input:checked) {
+    background: var(--mint);
+}
+
+.choice--lemon:has(input:checked) {
+    background: var(--lemon);
+}
+
+.choice:has(input:checked) {
+    box-shadow: var(--shadow-sm);
+}
+
+/* --- Actions --------------------------------------------------------------- */
+
+.create-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 2px solid #EDE6D6;
+}
+
+.create-form__actions .btn[disabled] {
+    opacity: .6;
+    cursor: progress;
+    transform: none;
+}
+
+/* --- Après l'envoi --------------------------------------------------------- */
+
+.create-success {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--mint);
+}
+
+.create-success__title {
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.create-success__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+@media (max-width: 800px) {
+    .create-form {
+        padding: 20px;
+    }
+
+    .create-form__grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    /* sur mobile, la photo passe sous les champs, en bandeau moins haut */
+    .dropzone {
+        aspect-ratio: 16 / 9;
+    }
+
+    .create-form__actions {
+        flex-direction: column-reverse;
+    }
+
+    .create-form__actions .btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .choice:hover {
+        transform: none;
+    }
+}
 
 /* ==========================================================================
-   10. Pages de contenu (mentions légales, confidentialité, contact)
+   9. Pages de contenu (mentions légales, confidentialité, contact)
    ========================================================================== */
 
 .prose {
@@ -1654,50 +1944,450 @@ kbd {
     }
 }
 
-.site-nav__dropdown {
-    position: relative;
-    margin: 0;
-}
+/* ==========================================================================
+   10. Dock flottant (connecté)
+   ≥ 1400 px : pilule verticale à gauche · 701–1399 px : barre en bas
+   ≤ 700 px : barre d'onglets en bas avec libellés
+   ========================================================================== */
 
-.site-nav__dropdown > summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 8px 14px;
-    border: 2px solid transparent;
+.dock {
+    position: fixed;
+    z-index: 30;
+    left: clamp(24px, 3vw, 56px);
+    /* s'écarte du bord sur les grands écrans, sans toucher le contenu */
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 14px;
+    background: var(--lilac);
+    border: var(--border);
     border-radius: var(--radius-pill);
-    font-weight: 600;
+    box-shadow: var(--shadow);
 }
 
-.site-nav__dropdown > summary::-webkit-details-marker {
+.dock__group {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* séparateur entre les groupes Jouer / Explorer / Contribuer */
+.dock__group + .dock__group {
+    padding-top: 10px;
+    border-top: 2px solid var(--ink);
+}
+
+.dock__btn {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    /* cible de clic confortable (≥ 44 px recommandés) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--white);
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+
+.dock__btn svg {
+    width: 28px;
+    height: 28px;
+}
+
+a.dock__btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-sm);
+    color: var(--ink);
+}
+
+.dock__btn[aria-current="page"] {
+    background: var(--yellow);
+}
+
+/* actions de création : petit badge « + » orange dans le coin */
+.dock__btn--create::after {
+    content: "+";
+    position: absolute;
+    right: -6px;
+    top: -6px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--orange);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* page pas encore disponible */
+.dock__btn.is-disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* étiquette au survol / focus (souris et clavier) */
+.dock__label {
+    position: absolute;
+    left: calc(100% + 16px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: var(--ink);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+.dock__label::before {
+    content: "";
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: var(--ink);
+}
+
+.dock__btn:hover .dock__label,
+.dock__btn:focus-visible .dock__label {
+    opacity: 1;
+}
+
+/* libellé court : seulement sur mobile */
+.dock__short {
     display: none;
 }
 
-.site-nav__dropdown > summary[aria-current="page"] {
-    border-color: var(--ink);
-    background: var(--yellow);
+/* --- 701–1399 px : barre horizontale flottante en bas ------------------- */
+@media (max-width: 1399px) {
+    .dock {
+        left: 50%;
+        top: auto;
+        bottom: 16px;
+        transform: translateX(-50%);
+        flex-direction: row;
+        padding: 10px 14px;
+    }
+
+    .dock__group {
+        flex-direction: row;
+    }
+
+    /* en barre horizontale, des boutons un peu plus compacts */
+    .dock__btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    .dock__btn svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .dock__group + .dock__group {
+        padding-top: 0;
+        padding-left: 10px;
+        border-top: 0;
+        border-left: 2px solid var(--ink);
+    }
+
+    .dock__label {
+        left: 50%;
+        top: auto;
+        bottom: calc(100% + 14px);
+        transform: translateX(-50%);
+    }
+
+    .dock__label::before {
+        right: auto;
+        left: 50%;
+        top: 100%;
+        transform: translateX(-50%);
+        border-right-color: transparent;
+        border-top-color: var(--ink);
+    }
+
+    /* le dock ne doit pas masquer le bas du footer */
+    body:has(.dock) {
+        padding-bottom: 100px;
+    }
 }
 
-.site-nav__menu {
-    position: absolute;
-    z-index: 10;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 220px;
-    padding: 8px;
+/* --- ≤ 700 px : barre d'onglets, libellés toujours visibles --------------- */
+@media (max-width: 700px) {
+    .dock {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        transform: none;
+        justify-content: space-around;
+        gap: 4px;
+        padding: 8px 6px;
+        border-radius: 22px;
+    }
+
+    .dock__group {
+        flex: 1 1 auto;
+        justify-content: space-around;
+        gap: 4px;
+    }
+
+    .dock__group + .dock__group {
+        padding-left: 4px;
+    }
+
+    .dock__btn {
+        width: auto;
+        min-width: 56px;
+        height: 56px;
+        padding: 4px 6px;
+        gap: 2px;
+        border-color: transparent;
+        border-radius: 14px;
+        background: transparent;
+    }
+
+    .dock__btn[aria-current="page"] {
+        border-color: var(--ink);
+        background: var(--yellow);
+    }
+
+    .dock__btn--create::after {
+        display: none;
+    }
+
+    .dock__btn svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .dock__short {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* l'étiquette longue n'est plus affichée, mais reste lue par les lecteurs d'écran */
+    .dock__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        opacity: 1;
+    }
+
+    .dock__label::before {
+        display: none;
+    }
+
+    body:has(.dock) {
+        padding-bottom: 92px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    a.dock__btn:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   11. Pages héritées (thème appliqué sans modifier leur HTML)
+   Classement, fiche plat, ancien dashboard… à retirer au fil de leur réécriture.
+   ========================================================================== */
+
+.intro {
+    padding: 32px;
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    background: var(--lemon);
+    margin-bottom: 32px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 28px;
+}
+
+.cards article {
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.cards img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-bottom: var(--border);
+}
+
+.cardbody {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+    padding: 24px;
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin: 16px 0 32px;
+}
+
+.detail>img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
     border: var(--border);
     border-radius: 14px;
-    background: var(--white);
-    box-shadow: var(--shadow-sm);
 }
 
-.site-nav__menu a {
-    display: block;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
+.detail>div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
 }
 
-.site-nav__menu a:hover {
+.detail button {
+    min-height: 52px;
+    padding: 0 24px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
     background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.rating {
+    font-weight: 600;
+}
+
+.reviewform {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 560px;
+    padding: 24px;
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin: 16px 0 32px;
+}
+
+.reviewform label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reviewform button {
+    align-self: flex-start;
+    min-height: 48px;
+    padding: 0 24px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.review {
+    padding: 16px 18px;
+    background: var(--white);
+    border: var(--border);
+    border-radius: 16px;
+    margin-bottom: 12px;
+}
+
+.subnav {
+    padding: 12px 18px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    margin: 16px 0;
+    display: inline-flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+details {
+    margin: 16px 0;
+}
+
+details>summary {
+    cursor: pointer;
+    font-weight: 700;
+    padding: 12px 0;
+}
+
+.delete {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--pink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+@media (max-width: 700px) {
+    .detail {
+        grid-template-columns: 1fr;
+    }
 }
