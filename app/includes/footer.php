@@ -1,4 +1,5 @@
     </main>
+    <?php if (isset($_SESSION['user_id'])) require __DIR__ . '/../views/partials/dock.php'; ?>
     <footer class="site-footer">
         <div class="site-footer__inner">
             <p><strong>FoodBattle</strong> — le meilleur du quartier, selon vous.<br>
