@@ -1653,3 +1653,51 @@ kbd {
         transform: none;
     }
 }
+
+.site-nav__dropdown {
+    position: relative;
+    margin: 0;
+}
+
+.site-nav__dropdown > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 8px 14px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+}
+
+.site-nav__dropdown > summary::-webkit-details-marker {
+    display: none;
+}
+
+.site-nav__dropdown > summary[aria-current="page"] {
+    border-color: var(--ink);
+    background: var(--yellow);
+}
+
+.site-nav__menu {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    padding: 8px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.site-nav__menu a {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.site-nav__menu a:hover {
+    background: var(--yellow);
+}
