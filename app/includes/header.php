@@ -11,6 +11,9 @@ $navLinks = [
     '/duel'           => 'Duels',
     '/classement.php' => 'Classement',
 ];
+$navIsLogged = isset($_SESSION['user_id']);
+$navUsername = $_SESSION['username'] ?? null;
+$navName = $_SESSION['username'] ?? '';
 ?>
 <!doctype html>
 <html lang="fr">
@@ -34,10 +37,22 @@ $navLinks = [
                 FoodBattle
             </a>
             <nav class="site-nav" aria-label="Navigation principale">
-                <?php foreach ($navLinks as $href => $label): ?>
-                    <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
-                <?php endforeach ?>
-                <a class="btn btn--dark btn--sm" href="/#carte">Voir la carte</a>
+            <?php foreach ($navLinks as $href => $label): ?>
+                <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
+            <?php endforeach ?>
+
+            <?php if ($navIsLogged): ?>
+                <span class="site-nav__user">Salut <?= h($navName ?? '') ?> !</span>
+                <form class="site-nav__logout" method="post" action="/logout">
+                    <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+                    <button class="link-btn" type="submit">Déconnexion</button>
+                </form>
+            <?php else: ?>
+                <a href="/login" <?= $currentPath === '/login' ? 'aria-current="page"' : '' ?>>Connexion</a>
+                <a class="site-nav__signup" href="/signup" <?= $currentPath === '/signup' ? 'aria-current="page"' : '' ?>>Inscription</a>
+            <?php endif ?>
+                
+                <a class="btn btn--dark btn--sm" href="/duel">Jouer</a>
             </nav>
         </div>
     </header>

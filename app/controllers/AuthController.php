@@ -83,4 +83,43 @@ class AuthController
 
         require __DIR__ . '/../views/auth/signup.php';
     }
+
+    public function login(): void
+{
+    $errors = [];
+    $login = '';
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $login = trim($_POST['login'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $submittedToken = $_POST['csrf_token'] ?? '';
+
+        if (!is_string($submittedToken) || !hash_equals($_SESSION['csrf_token'], $submittedToken)) {
+            $errors[] = 'Le formulaire a expiré. Recharge la page et réessaie.';
+        } else {
+            $user = (new User($this->db))->findByLogin($login);
+
+            if ($user && password_verify($password, $user['password_hash'])) {
+                session_regenerate_id(true);
+                $_SESSION['user_id']  = (int) $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role']     = $user['role'];
+
+                header('Location: /', true, 303);
+                exit;
+            }
+
+            $errors[] = 'Identifiant ou mot de passe incorrect.';
+        }
+    }
+
+    $csrfToken = $_SESSION['csrf_token'];
+    $title = 'Connexion';
+
+    require __DIR__ . '/../views/auth/login.php';
+}
 }

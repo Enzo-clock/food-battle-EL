@@ -39,4 +39,22 @@ class User
             throw $e;
         }
     }
+
+
+/** Retrouve un utilisateur par e-mail ou par nom d'utilisateur. */
+    public function findByLogin(string $login): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, username, password_hash, role
+            FROM users
+            WHERE email = :email OR username = :username
+            LIMIT 1'
+        );
+        $stmt->execute([
+            'email'    => strtolower($login),
+            'username' => $login,
+        ]);
+
+        return $stmt->fetch() ?: null;
+    }
 }

@@ -5,9 +5,9 @@
                 <small>Prototype pédagogique · établissements, avis et données fictifs · photographies d’illustration</small>
             </p>
             <nav aria-label="Liens légaux">
-                <a href="#">Mentions légales</a>
-                <a href="#">Confidentialité (RGPD)</a>
-                <a href="#">Contact</a>
+                <a href="/mentions-legales">Mentions légales</a>
+                <a href="/confidentialite">Confidentialité (RGPD)</a>
+                <a href="/contact">Contact</a>
                 <a href="/dashboard.php">Espace admin</a>
             </nav>
         </div>
