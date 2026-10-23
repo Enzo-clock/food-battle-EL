@@ -32,4 +32,16 @@ class Establishment
 
         return (int) $stmt->fetchColumn();
     }
+
+    /** Liste pour un menu déroulant : [id => ['name' => …, 'city' => …]], triée par nom. */
+    public function allForSelect(): array
+    {
+        $rows = $this->db->query('SELECT id, name, city FROM establishments ORDER BY name, city')->fetchAll();
+
+        $list = [];
+        foreach ($rows as $row) {
+            $list[(int) $row['id']] = ['name' => $row['name'], 'city' => $row['city']];
+        }
+        return $list;
+    }
 }
