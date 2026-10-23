@@ -37,21 +37,28 @@ $navName = $_SESSION['username'] ?? '';
                 FoodBattle
             </a>
             <nav class="site-nav" aria-label="Navigation principale">
-            <?php foreach ($navLinks as $href => $label): ?>
-                <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
-            <?php endforeach ?>
+                <?php foreach ($navLinks as $href => $label): ?>
+                    <a href="<?= h($href) ?>" <?= $currentPath === $href ? 'aria-current="page"' : '' ?>><?= h($label) ?></a>
+                <?php endforeach ?>
+                <details class="site-nav__dropdown">
+                    <summary <?= $currentPath === '/restaurant/creer' ? 'aria-current="page"' : '' ?>>
+                        Ajouter
+                    </summary>
+                    <div class="site-nav__menu">
+                        <a href="/restaurant/creer">Ajouter un restaurant</a>
+                    </div>
+                </details>
+                <?php if ($navIsLogged): ?>
+                    <span class="site-nav__user">Salut <?= h($navName ?? '') ?> !</span>
+                    <form class="site-nav__logout" method="post" action="/logout">
+                        <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+                        <button class="link-btn" type="submit">Déconnexion</button>
+                    </form>
+                <?php else: ?>
+                    <a href="/login" <?= $currentPath === '/login' ? 'aria-current="page"' : '' ?>>Connexion</a>
+                    <a class="site-nav__signup" href="/signup" <?= $currentPath === '/signup' ? 'aria-current="page"' : '' ?>>Inscription</a>
+                <?php endif ?>
 
-            <?php if ($navIsLogged): ?>
-                <span class="site-nav__user">Salut <?= h($navName ?? '') ?> !</span>
-                <form class="site-nav__logout" method="post" action="/logout">
-                    <input type="hidden" name="token" value="<?= h(csrf()) ?>">
-                    <button class="link-btn" type="submit">Déconnexion</button>
-                </form>
-            <?php else: ?>
-                <a href="/login" <?= $currentPath === '/login' ? 'aria-current="page"' : '' ?>>Connexion</a>
-                <a class="site-nav__signup" href="/signup" <?= $currentPath === '/signup' ? 'aria-current="page"' : '' ?>>Inscription</a>
-            <?php endif ?>
-                
                 <a class="btn btn--dark btn--sm" href="/duel">Jouer</a>
             </nav>
         </div>
