@@ -28,15 +28,6 @@ $dockGroups = [
             'icon'  => '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>',
         ],
     ],
-    'Explorer' => [
-        [
-            'href'  => null,
-            'label' => 'Catégories',
-            'short' => 'Catégories',
-            // grille de 4 cases
-            'icon'  => '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
-        ],
-    ],
     'Contribuer' => [
         [
             'href'  => '/plat/creer',
@@ -51,6 +42,13 @@ $dockGroups = [
             'short' => '+ Resto',
             // devanture avec auvent
             'icon'  => '<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6"/><path d="M10 20v-5h4v5"/>',
+        ],
+        [
+            'href'  => '/categorie/creer',
+            'label' => 'Ajouter une catégorie',
+            'short' => '+ Catégorie',
+            // étiquette : une catégorie
+            'icon'  => '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><path d="M7.5 7.5h.01"/>',
         ],
     ],
 ];
