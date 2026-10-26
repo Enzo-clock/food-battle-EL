@@ -68,5 +68,11 @@ if (isset($pages[$path]) && $method === 'GET') {
     exit;
 }
 
+if ($path === '/duel/creer' && in_array($method, ['GET', 'POST'], true)) {
+    require_once __DIR__ . '/../app/controllers/BattleCreationController.php';
+    (new BattleCreationController($db))->create();
+    exit;
+}
+
 http_response_code(404);
 echo 'Page introuvable';

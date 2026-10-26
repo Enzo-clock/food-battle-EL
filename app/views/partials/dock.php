@@ -14,9 +14,9 @@ $dockPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $dockGroups = [
     'Jouer' => [
         [
-            'href'  => '/duel',
-            'label' => 'Duel',
-            'short' => 'Duel',
+            'href'  => '/duel/creer',
+            'label' => 'Ajouter un duel',
+            'short' => '+ Duel',
             // éclair : l’affrontement
             'icon'  => '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
         ],
@@ -61,8 +61,7 @@ $dockGroups = [
             <?php foreach ($items as $item): ?>
                 <?php
                 $isCurrent = $item['href'] !== null && $dockPath === $item['href'];
-                $isCreate = $groupName === 'Contribuer';
-                $classes = 'dock__btn' . ($isCreate ? ' dock__btn--create' : '');
+                $classes = 'dock__btn dock__btn--create';
                 ?>
                 <li>
                     <?php if ($item['href'] !== null): ?>
