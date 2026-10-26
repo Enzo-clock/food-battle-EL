@@ -4,6 +4,10 @@
 $errors ??= [];
 $success = isset($_GET['success']);
 
+// Un navigateur ne conserve jamais un fichier choisi après un envoi en erreur :
+// on prévient l'utilisateur qu'il doit resélectionner sa photo.
+$pictureWasSent = $errors && (($_FILES['picture']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -36,7 +40,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         <?php endif ?>
 
-        <form class="create-form box" method="post" action="/plat/creer" data-lock-submit>
+        <form class="create-form box" method="post" action="/plat/creer" enctype="multipart/form-data" data-lock-submit>
             <input type="hidden" name="token" value="<?= h(csrf()) ?>">
 
             <p class="create-form__legend"><span aria-hidden="true">*</span> Champ obligatoire</p>
@@ -90,21 +94,53 @@ require_once __DIR__ . '/../includes/header.php';
                     </fieldset>
                 </div>
 
-                <fieldset class="create-form__group">
-                    <legend>Catégories <span class="field__req" aria-hidden="true">*</span></legend>
-                    <p class="field__hint" id="categories-hint">Une ou plusieurs. Le plat sera tiré au sort dans les duels de chacune.</p>
+                <div class="create-form__fields">
+                    <fieldset class="create-form__group">
+                        <legend>Catégories <span class="field__req" aria-hidden="true">*</span></legend>
+                        <p class="field__hint" id="categories-hint">Une ou plusieurs. Le plat sera tiré au sort dans les duels de chacune.
+                            Il en manque une ? <a href="/categorie/creer?retour=plat">Crée-la</a>.</p>
 
-                    <div class="choice-grid" role="group" aria-describedby="categories-hint">
-                        <?php foreach ($categories as $id => $key): ?>
-                            <?php $tone = category_tone($key); ?>
-                            <label class="choice choice--<?= h($tone) ?>">
-                                <input type="checkbox" name="categories[]" value="<?= (int) $id ?>"
-                                    <?= in_array($id, $old['categories'], true) ? 'checked' : '' ?>>
-                                <span><?= h(category_label($key)) ?></span>
-                            </label>
-                        <?php endforeach ?>
-                    </div>
-                </fieldset>
+                        <div class="choice-grid" role="group" aria-label="Catégories du plat"
+                            aria-describedby="categories-hint" data-scroll-fade data-choice-group>
+                            <?php foreach ($categories as $id => $key): ?>
+                                <?php $tone = category_tone($key); ?>
+                                <label class="choice choice--<?= h($tone) ?>">
+                                    <input type="checkbox" name="categories[]" value="<?= (int) $id ?>"
+                                        <?= in_array($id, $old['categories'], true) ? 'checked' : '' ?>>
+                                    <span><?= h(category_label($key)) ?></span>
+                                </label>
+                            <?php endforeach ?>
+                        </div>
+                        <p class="choice-count" aria-live="polite" data-choice-count></p>
+                    </fieldset>
+
+                    <fieldset class="create-form__group">
+                        <legend>Photo <span class="field__opt">(facultative)</span></legend>
+
+                        <div class="dropzone" data-dropzone>
+                            <input class="dropzone__input" id="picture" name="picture" type="file"
+                                accept="image/jpeg,image/png,image/webp" aria-label="Choisir une photo du plat"
+                                aria-describedby="picture-hint" data-preview-input>
+                            <img class="dropzone__preview" alt="" hidden data-preview>
+                            <span class="dropzone__empty" data-preview-empty>
+                                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                                    <circle cx="9" cy="10" r="2" />
+                                    <path d="m21 16-5-5-8 8" />
+                                </svg>
+                                <strong>Choisir ou glisser une photo</strong>
+                                <small>JPG, PNG ou WebP · 5 Mo maximum</small>
+                            </span>
+                        </div>
+                        <p class="field__hint" id="picture-hint">
+                            Sans photo, c’est l’image de sa catégorie qui s’affiche.
+                            <?php if ($pictureWasSent): ?>
+                                <strong class="field__warn">Pense à resélectionner ta photo.</strong>
+                            <?php endif ?>
+                        </p>
+                    </fieldset>
+                </div>
             </div>
 
             <div class="create-form__actions">
