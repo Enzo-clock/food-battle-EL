@@ -49,8 +49,8 @@ class BattleCreationController
             LEFT JOIN establishments e ON e.id = d.establishment_id
             LEFT JOIN LATERAL (
                 SELECT
-                    MIN(c.name) AS primary_category,
-                    json_agg(c.name ORDER BY c.name)::text AS categories_json
+                    MIN(c.slug) AS primary_category,
+                    json_agg(c.slug ORDER BY c.slug)::text AS categories_json
                 FROM dish_categories dc
                 JOIN categories c ON c.id = dc.category_id
                 WHERE dc.dish_id = d.id
@@ -73,7 +73,7 @@ class BattleCreationController
                     FROM dish_categories dc
                     JOIN categories c ON c.id = dc.category_id
                     WHERE dc.dish_id = d.id
-                      AND c.name = ?
+                      AND c.slug = ?
                 )
             ";
             $params[] = $category;

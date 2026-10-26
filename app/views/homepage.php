@@ -3,7 +3,7 @@ $title = 'Accueil';
 require_once __DIR__ . '/../includes/header.php';
 
 require_once __DIR__ . '/../models/Battle.php';
-$teaserCat = array_rand(categories());
+$teaserCat = array_rand(duel_categories() ?: categories());
 $teaser = (new Battle($db))->randomDuel($teaserCat, null);
 
 $categories = categories();
@@ -33,8 +33,8 @@ $sql = "
     LEFT JOIN establishments e ON e.id = d.establishment_id
     LEFT JOIN LATERAL (
         SELECT
-            MIN(c.name) AS primary_category,
-            json_agg(c.name ORDER BY c.name)::text AS categories_json
+            MIN(c.slug) AS primary_category,
+            json_agg(c.slug ORDER BY c.slug)::text AS categories_json
         FROM dish_categories dc
         JOIN categories c ON c.id = dc.category_id
         WHERE dc.dish_id = d.id
@@ -56,7 +56,7 @@ if ($cat !== '') {
             FROM dish_categories dc
             JOIN categories c ON c.id = dc.category_id
             WHERE dc.dish_id = d.id
-              AND c.name = ?
+              AND c.slug = ?
         )
     ";
     $params[] = $cat;
@@ -161,7 +161,7 @@ function filter_url(string $category, string $q): string
 
     <nav class="chips" aria-label="Filtrer par catégorie">
         <a class="chip" href="<?= h(filter_url('', $q)) ?>" <?= $cat === '' ? 'aria-current="true"' : '' ?>>Tous</a>
-        <?php foreach ($categories as $key => $c): ?>
+        <?php foreach (array_filter($categories, static fn(array $c): bool => $c['dishes'] > 0) as $key => $c): ?>
             <a class="chip chip--<?= $c['tone'] ?>" href="<?= h(filter_url($key, $q)) ?>" <?= $cat === $key ? 'aria-current="true"' : '' ?>><?= h($c['label']) ?></a>
         <?php endforeach ?>
     </nav>

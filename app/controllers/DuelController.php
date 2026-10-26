@@ -14,7 +14,7 @@ class DuelController
         global $db;
 
         $battles = new Battle($db);
-        $categories = categories();
+        $categories = duel_categories();   // seulement les catégories qui ont au moins 2 plats
         $category = $this->category($_GET['categorie'] ?? '');
         $userId = $this->userId();
 
@@ -148,10 +148,10 @@ class DuelController
         ];
     }
 
-    /** Catégorie demandée si elle est connue, sinon une catégorie au hasard. */
+    /** Catégorie demandée si elle est jouable (≥ 2 plats), sinon une catégorie jouable au hasard. */
     private function category(string $requested): string
     {
-        $keys = array_keys(categories());
+        $keys = array_keys(duel_categories()) ?: array_keys(categories());
         return in_array($requested, $keys, true) ? $requested : $keys[array_rand($keys)];
     }
 

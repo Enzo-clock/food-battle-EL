@@ -26,7 +26,7 @@ class Battle
              JOIN dish_categories dc ON dc.dish_id = d.id
              JOIN categories c ON c.id = dc.category_id
              LEFT JOIN establishments e ON e.id = d.establishment_id
-             WHERE c.name = ?
+             WHERE c.slug = ?
              ORDER BY d.id"
         );
         $stmt->execute([$category]);
