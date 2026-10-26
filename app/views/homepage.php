@@ -76,7 +76,6 @@ function filter_url(string $category, string $q): string
 
 <section class="hero">
     <div class="hero__text">
-        <span class="pill">BURGERS · TACOS · PIZZAS</span>
         <h1 class="hero__title">Deux plats.<br>Un seul gagnant.</h1>
         <p class="hero__lead">Explore les spots du quartier, note les plats et vote pour ton favori.</p>
         <div class="hero__actions">
