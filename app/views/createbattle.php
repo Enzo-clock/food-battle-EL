@@ -88,10 +88,6 @@ require_once __DIR__ . '/../includes/header.php';
             <input type="hidden" name="a" id="selected-a" value="<?= $selectedA ?: '' ?>">
             <input type="hidden" name="b" id="selected-b" value="<?= $selectedB ?: '' ?>">
 
-            <p id="selection-status" class="results" role="status">
-                Sélectionne deux plats.
-            </p>
-
             <div class="dish-grid">
                 <?php foreach ($dishes as $dish): ?>
                     <?php
@@ -116,7 +112,9 @@ require_once __DIR__ . '/../includes/header.php';
                     $isSelected = in_array($id, [$selectedA, $selectedB], true);
                     ?>
 
-                    <article class="dish-card">
+                    <article class="dish-card pick-card" data-id="<?= $id ?>" data-name="<?= h($dish['name']) ?>"
+                        data-categories="<?= h(json_encode(is_array($categoryKeys) ? $categoryKeys : [])) ?>">
+                        <span class="pick-card__badge" aria-hidden="true"></span>
                         <img
                             class="dish-card__img tone-<?= h($tone) ?>"
                             src="<?= h($image) ?>"
@@ -156,15 +154,28 @@ require_once __DIR__ . '/../includes/header.php';
                                 type="button"
                                 data-id="<?= $id ?>"
                                 aria-pressed="<?= $isSelected ? 'true' : 'false' ?>"
+                                aria-label="<?= $isSelected ? 'Retirer' : 'Ajouter' ?> <?= h($dish['name']) ?> <?= $isSelected ? 'du' : 'au' ?> duel"
                             ><?= $isSelected ? 'Retirer du duel' : 'Ajouter au duel' ?></button>
                         </div>
                     </article>
                 <?php endforeach ?>
             </div>
 
-            <button class="btn btn--primary" type="submit" id="create-battle" disabled>
-                Créer le duel
-            </button>
+            <div class="battle-tray box" aria-label="Ton duel">
+                <p class="battle-tray__slot battle-tray__slot--a" data-slot="a">
+                    <span class="battle-tray__letter" aria-hidden="true">A</span>
+                    <span class="battle-tray__name" data-slot-name>À choisir</span>
+                </p>
+                <span class="battle-tray__vs" aria-hidden="true">VS</span>
+                <p class="battle-tray__slot battle-tray__slot--b" data-slot="b">
+                    <span class="battle-tray__letter" aria-hidden="true">B</span>
+                    <span class="battle-tray__name" data-slot-name>À choisir</span>
+                </p>
+                <p id="selection-status" class="battle-tray__status" role="status">Sélectionne deux plats.</p>
+                <button class="btn btn--primary battle-tray__submit" type="submit" id="create-battle" disabled>
+                    Créer le duel
+                </button>
+            </div>
         </form>
     <?php else: ?>
         <div class="box empty">
@@ -175,51 +186,82 @@ require_once __DIR__ . '/../includes/header.php';
 </section>
 
 <script>
+// Sélection des deux plats du duel : A (teal) puis B (orange), comme sur la page duel.
+// Le serveur revérifie tout (deux plats différents qui partagent une catégorie).
 (() => {
     const a = document.getElementById('selected-a');
     const b = document.getElementById('selected-b');
     const status = document.getElementById('selection-status');
     const submit = document.getElementById('create-battle');
+    const cards = [...document.querySelectorAll('.pick-card')];
+    const slots = {
+        a: document.querySelector('[data-slot="a"]'),
+        b: document.querySelector('[data-slot="b"]'),
+    };
 
     if (!a || !b) return;
 
+    const cardById = id => cards.find(card => card.dataset.id === id);
+    const categoriesOf = card => {
+        try { return JSON.parse(card.dataset.categories || '[]'); } catch (e) { return []; }
+    };
+    const shareCategory = (c1, c2) => categoriesOf(c1).some(cat => categoriesOf(c2).includes(cat));
+
     function refresh() {
         const ids = [a.value, b.value].filter(Boolean);
+        const first = ids[0] ? cardById(ids[0]) : null;
+        const full = ids.length === 2;
 
-        document.querySelectorAll('.js-add-dish').forEach(button => {
-            const selected = ids.includes(button.dataset.id);
-            button.setAttribute('aria-pressed', String(selected));
-            button.textContent = selected ? 'Retirer du duel' : 'Ajouter au duel';
+        cards.forEach(card => {
+            const id = card.dataset.id;
+            const button = card.querySelector('.js-add-dish');
+            const letter = id === a.value ? 'a' : (id === b.value ? 'b' : '');
+            const incompatible = !letter && first && !shareCategory(card, first);
+            const blocked = !letter && (full || incompatible);
+
+            card.classList.toggle('is-picked-a', letter === 'a');
+            card.classList.toggle('is-picked-b', letter === 'b');
+            card.classList.toggle('is-unavailable', blocked);
+            card.querySelector('.pick-card__badge').textContent = letter.toUpperCase();
+
+            button.disabled = blocked;
+            button.setAttribute('aria-pressed', String(letter !== ''));
+            button.classList.toggle('btn--dark', letter !== '');
+            button.classList.toggle('btn--ghost', letter === '');
+            button.textContent = letter ? '✕ Retirer du duel'
+                : full ? '2 plats déjà choisis'
+                : incompatible ? 'Pas de catégorie commune'
+                : 'Ajouter au duel';
+            button.setAttribute('aria-label', (letter ? 'Retirer ' : 'Ajouter ') + card.dataset.name + (letter ? ' du duel' : ' au duel'));
         });
 
-        if (submit) {
-            submit.disabled = ids.length !== 2;
-        }
+        ['a', 'b'].forEach(key => {
+            const card = cardById(key === 'a' ? a.value : b.value);
+            slots[key].classList.toggle('is-filled', Boolean(card));
+            slots[key].querySelector('[data-slot-name]').textContent = card ? card.dataset.name : 'À choisir';
+        });
 
-        if (status) {
-            status.textContent =
-                `${ids.length} plat${ids.length > 1 ? 's' : ''} sélectionné${ids.length > 1 ? 's' : ''} sur 2.`;
-        }
+        submit.disabled = !full;
+        status.textContent = full ? 'Prêt ! Lance le duel.'
+            : ids.length === 1 ? 'Choisis le plat B (même catégorie).'
+            : 'Sélectionne deux plats.';
     }
 
     document.querySelectorAll('.js-add-dish').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
 
-            if (a.value === id) {
+            if (a.value === id) {          // retirer A : B devient A
                 a.value = b.value;
                 b.value = '';
-            } else if (b.value === id) {
+            } else if (b.value === id) {   // retirer B
                 b.value = '';
             } else if (!a.value) {
                 a.value = id;
             } else if (!b.value) {
                 b.value = id;
-            } else {
-                // Deux plats sont déjà sélectionnés : le premier est remplacé.
-                a.value = b.value;
-                b.value = id;
             }
+            // Deux plats déjà choisis : le bouton est désactivé, rien ne se passe.
 
             refresh();
         });
