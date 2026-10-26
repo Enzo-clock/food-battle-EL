@@ -2,6 +2,7 @@
 // filepath: app/controllers/DishController.php
 
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/upload.php';
 require_once __DIR__ . '/../models/Dish.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Establishment.php';
@@ -35,7 +36,8 @@ class DishController
             'price'            => '',
             // ?restaurant=ID pré-sélectionne un restaurant (lien depuis sa fiche, plus tard)
             'establishment_id' => (string) (int) ($_GET['restaurant'] ?? 0),
-            'categories'       => [],
+            // ?categorie=ID pré-coche une catégorie (retour depuis « Ajouter une catégorie »)
+            'categories'       => isset($_GET['categorie']) ? [(int) $_GET['categorie']] : [],
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,6 +87,13 @@ class DishController
                 $errors[] = 'Choisis au moins une catégorie : sans catégorie, le plat ne peut pas entrer dans les duels.';
             }
 
+            // Photo facultative : sans elle, c'est l'image de la catégorie qui s'affiche.
+            // Enregistrée seulement une fois le reste validé (pas de fichier orphelin).
+            $picture = null;
+            if (!$errors) {
+                $picture = save_uploaded_picture('picture', 'dishes', $errors);
+            }
+
             if (!$errors) {
                 try {
                     (new Dish($this->db))->create(
@@ -93,12 +102,14 @@ class DishController
                         $price,
                         $establishmentId !== 0 ? $establishmentId : null,
                         (int) $_SESSION['user_id'],
-                        $categoryIds
+                        $categoryIds,
+                        $picture
                     );
 
                     header('Location: /plat/creer?success=1', true, 303);
                     exit;
                 } catch (Throwable $e) {
+                    delete_uploaded_picture($picture);
                     error_log($e->getMessage());
                     $errors[] = 'Une erreur est survenue lors de l’enregistrement.';
                 }

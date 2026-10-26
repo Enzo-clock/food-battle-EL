@@ -56,6 +56,12 @@ if ($path === '/plat/creer' && in_array($method, ['GET', 'POST'], true)) {
     exit;
 }
 
+if ($path === '/categorie/creer' && in_array($method, ['GET', 'POST'], true)) {
+    require_once __DIR__ . '/../app/controllers/CategoryController.php';
+    (new CategoryController($db))->create();
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',

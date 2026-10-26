@@ -59,11 +59,6 @@ class EstablishmentController
             }
 
             $description = $old['description'] !== '' ? $old['description'] : null;
-            $picturePath = null;
-
-            if (!$errors) {
-                $picturePath = $this->savePicture($errors);
-            }
 
             if (!$errors) {
                 try {
@@ -71,7 +66,7 @@ class EstablishmentController
                     $establishment->create(
                         $old['name'],
                         $description,
-                        $picturePath,
+                        null, // plus de photo pour les restaurants
                         $old['city'],
                         $old['address'],
                         (int) $_SESSION['user_id']
@@ -80,10 +75,6 @@ class EstablishmentController
                     header('Location: /restaurant/creer?success=1', true, 303);
                     exit;
                 } catch (Throwable $e) {
-                    if ($picturePath !== null) {
-                        @unlink(dirname(__DIR__, 2) . '/public' . $picturePath);
-                    }
-
                     error_log($e->getMessage());
                     $errors[] = 'Une erreur est survenue lors de l’enregistrement.';
                 }
@@ -92,52 +83,5 @@ class EstablishmentController
 
         $title = 'Ajouter un restaurant';
         require __DIR__ . '/../views/createrestaurant.php';
-    }
-
-    private function savePicture(array &$errors): ?string
-    {
-        $file = $_FILES['picture'] ?? null;
-
-        if (!$file || $file['error'] === UPLOAD_ERR_NO_FILE) {
-            return null; // L’image est facultative.
-        }
-
-        if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
-            $errors[] = 'Le téléversement de l’image a échoué.';
-            return null;
-        }
-
-        if ($file['size'] > 5 * 1024 * 1024) {
-            $errors[] = 'L’image ne doit pas dépasser 5 Mo.';
-            return null;
-        }
-
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-        $extensions = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-        ];
-
-        if (!isset($extensions[$mime])) {
-            $errors[] = 'Formats acceptés : JPG, PNG ou WebP.';
-            return null;
-        }
-
-        $directory = dirname(__DIR__, 2) . '/public/uploads/establishments';
-
-        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-            $errors[] = 'Le dossier de stockage des images est indisponible.';
-            return null;
-        }
-
-        $filename = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
-
-        if (!move_uploaded_file($file['tmp_name'], $directory . '/' . $filename)) {
-            $errors[] = 'Impossible d’enregistrer l’image.';
-            return null;
-        }
-
-        return '/uploads/establishments/' . $filename;
     }
 }

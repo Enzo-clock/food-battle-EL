@@ -18,20 +18,22 @@ class Dish
         ?string $price,
         ?int $establishmentId,
         int $creatorId,
-        array $categoryIds
+        array $categoryIds,
+        ?string $picture = null
     ): int {
         $this->db->beginTransaction();
 
         try {
             $stmt = $this->db->prepare(
-                'INSERT INTO dishes (name, description, price, establishment_id, creator_id)
-                 VALUES (:name, :description, :price, :establishment_id, :creator_id)
+                'INSERT INTO dishes (name, description, price, picture, establishment_id, creator_id)
+                 VALUES (:name, :description, :price, :picture, :establishment_id, :creator_id)
                  RETURNING id'
             );
             $stmt->execute([
                 'name'             => $name,
                 'description'      => $description,
                 'price'            => $price,
+                'picture'          => $picture,
                 'establishment_id' => $establishmentId,
                 'creator_id'       => $creatorId,
             ]);

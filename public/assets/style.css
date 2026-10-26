@@ -414,6 +414,19 @@ a:hover {
     background-color: var(--white);
 }
 
+/* couleurs des catégories créées par les utilisateurs */
+.tone-lilac {
+    background-color: var(--lilac);
+}
+
+.tone-pink {
+    background-color: var(--pink);
+}
+
+.tone-sky {
+    background-color: var(--sky);
+}
+
 .link-strong {
     font-weight: 800;
 }
@@ -455,6 +468,18 @@ a:hover {
 
 .chip--lemon {
     background: var(--lemon);
+}
+
+.chip--lilac {
+    background: var(--lilac);
+}
+
+.chip--pink {
+    background: var(--pink);
+}
+
+.chip--sky {
+    background: var(--sky);
 }
 
 .chip[aria-current="true"] {
@@ -1343,6 +1368,224 @@ tr:last-child td {
     }
 }
 
+/* --- Création de duel (/duel/creer) : sélection A / B ------------------------ */
+.pick-card {
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+
+/* pastille A / B sur la photo du plat choisi (vide = cachée) */
+.pick-card__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.pick-card__badge:empty {
+    display: none;
+}
+
+/* plat choisi : anneau de couleur + carte soulevée, comme le plat choisi sur la page duel */
+.pick-card.is-picked-a {
+    transform: translate(-3px, -3px);
+    box-shadow: 0 0 0 5px var(--teal), 10px 10px 0 var(--ink);
+}
+
+.pick-card.is-picked-b {
+    transform: translate(-3px, -3px);
+    box-shadow: 0 0 0 5px var(--orange), 10px 10px 0 var(--ink);
+}
+
+.pick-card.is-picked-a .pick-card__badge {
+    background: var(--teal);
+}
+
+.pick-card.is-picked-b .pick-card__badge {
+    background: var(--orange);
+}
+
+/* plat impossible à choisir (catégorie différente, ou déjà 2 plats) */
+.pick-card.is-unavailable {
+    opacity: .45;
+}
+
+.pick-card.is-unavailable .dish-card__img {
+    filter: grayscale(.7);
+}
+
+.pick-card .btn[disabled] {
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* barre récapitulative, collée en bas de l'écran pendant qu'on parcourt les plats */
+.battle-tray {
+    position: sticky;
+    bottom: 16px;
+    z-index: 20;
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "a vs b submit"
+        "status status status submit";
+    align-items: center;
+    gap: 8px 14px;
+    padding: 14px 18px;
+}
+
+.battle-tray__slot {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 14px 0 6px;
+    border: 2px dashed var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--cream);
+    font-weight: 700;
+}
+
+.battle-tray__slot--a {
+    grid-area: a;
+}
+
+.battle-tray__slot--b {
+    grid-area: b;
+}
+
+.battle-tray__slot.is-filled {
+    border-style: solid;
+}
+
+.battle-tray__slot--a.is-filled {
+    background: var(--teal);
+}
+
+.battle-tray__slot--b.is-filled {
+    background: var(--orange);
+}
+
+.battle-tray__letter {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--white);
+    font-weight: 800;
+}
+
+.battle-tray__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.battle-tray__slot:not(.is-filled) .battle-tray__name {
+    font-weight: 400;
+    color: #6B665C;
+}
+
+.battle-tray__vs {
+    grid-area: vs;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--yellow);
+    font-size: 14px;
+    font-weight: 800;
+    transform: rotate(-8deg);
+}
+
+.battle-tray__status {
+    grid-area: status;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.battle-tray__submit {
+    grid-area: submit;
+    min-height: 56px;
+}
+
+.battle-tray__submit[disabled] {
+    opacity: .5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* le dock passe en barre du bas sous 1400 px : la barre récap se place au-dessus */
+@media (max-width: 1399px) {
+    body:has(.dock) .battle-tray {
+        bottom: 100px;
+    }
+}
+
+@media (max-width: 700px) {
+    .battle-tray {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-areas:
+            "a vs b"
+            "submit submit submit";
+        padding: 12px;
+    }
+
+    /* barre plus compacte au-dessus du dock : l'aide reste lue par les lecteurs d'écran */
+    .battle-tray__status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .battle-tray__slot {
+        padding-right: 10px;
+        font-size: 14px;
+    }
+
+    .battle-tray__letter {
+        width: 28px;
+        height: 28px;
+    }
+
+    body:has(.dock) .battle-tray {
+        bottom: 92px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pick-card,
+    .pick-card.is-picked-a,
+    .pick-card.is-picked-b {
+        transition: none;
+        transform: none;
+    }
+}
+
 /* ==========================================================================
    7. Connexion / inscription (/login, /signup)
    ========================================================================== */
@@ -1441,7 +1684,7 @@ tr:last-child td {
 }
 
 /* ==========================================================================
-   8. Pages de création (/restaurant/creer, /plat/creer)
+   8. Pages de création (/restaurant/creer, /plat/creer, /categorie/creer)
    ========================================================================== */
 
 .create-page {
@@ -1491,6 +1734,11 @@ tr:last-child td {
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     gap: 32px;
     align-items: start;
+}
+
+/* deux groupes de même largeur (ex. ajout de restaurant, sans photo) */
+.create-form__grid--even {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .create-form__fields {
@@ -1705,9 +1953,40 @@ tr:last-child td {
 /* --- Cases de catégories (ajout de plat) ----------------------------------- */
 
 .choice-grid {
+    /* 5 catégories visibles, puis défilement dans le bloc (le formulaire ne s'allonge plus) */
+    --choice-h: 56px;
+    --choice-gap: 12px;
+    --choice-visible: 5;
+    position: relative;
+    /* repère pour form.js (position des cases dans la liste) */
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--choice-gap);
+    max-height: calc(var(--choice-visible) * var(--choice-h) + (var(--choice-visible) - 1) * var(--choice-gap) + 12px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* évite que la molette fasse défiler la page en arrivant au bout de la liste */
+    padding: 6px 10px 6px 4px;
+    /* marge pour que l'ombre et le décalage au survol ne soient pas coupés */
+    scrollbar-gutter: stable;
+    /* place réservée à la barre de défilement : la largeur ne saute pas quand elle apparaît */
+}
+
+/* dégradé en bas tant qu'il reste des catégories cachées (classes posées par form.js) */
+.choice-grid.is-scrollable:not(.is-at-end) {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+}
+
+.choice-count {
+    min-height: 1.5em;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.choice-grid .choice {
+    flex: none;
+    /* une case ne se tasse jamais pour faire de la place aux autres */
 }
 
 .choice {
@@ -1768,8 +2047,152 @@ tr:last-child td {
     background: var(--lemon);
 }
 
+.choice--lilac:has(input:checked) {
+    background: var(--lilac);
+}
+
+.choice--pink:has(input:checked) {
+    background: var(--pink);
+}
+
+.choice--sky:has(input:checked) {
+    background: var(--sky);
+}
+
 .choice:has(input:checked) {
     box-shadow: var(--shadow-sm);
+}
+
+/* --- Ajout de catégorie : liste, couleur, aperçu --------------------------- */
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.category-list__title {
+    font-size: 20px;
+}
+
+.category-list__items {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* pastille non cliquable : pas d'effet au survol */
+.category-list__chip,
+.category-list__chip:hover {
+    gap: 8px;
+    transform: none;
+    cursor: default;
+}
+
+.category-list__count {
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* message sous le nom : doublon exact (rouge) ou catégorie proche (orange) */
+.category-suggest {
+    min-height: 1.5em;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.category-suggest.is-error {
+    color: var(--danger);
+}
+
+.category-suggest.is-warning {
+    color: #9A3412;
+}
+
+.swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.swatch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 12px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* le vrai bouton radio, invisible mais toujours focusable et lu par les lecteurs d'écran */
+.swatch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.swatch__dot {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+
+.swatch:has(input:checked) {
+    box-shadow: var(--shadow-sm);
+    background: var(--cream);
+}
+
+/* coche dans la pastille sélectionnée : l'état ne repose pas que sur la couleur */
+.swatch:has(input:checked) .swatch__dot {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 14px;
+}
+
+.swatch:has(input:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--yellow);
+}
+
+.category-preview__title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.category-preview__stage {
+    min-height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    border: var(--border-w) dashed var(--ink);
+    border-radius: var(--radius);
+    background: var(--cream);
+}
+
+.category-preview__chip,
+.category-preview__chip:hover {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    transform: none;
 }
 
 /* --- Actions --------------------------------------------------------------- */
@@ -1811,6 +2234,10 @@ tr:last-child td {
 }
 
 @media (max-width: 800px) {
+    .swatch-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .create-form {
         padding: 20px;
     }
