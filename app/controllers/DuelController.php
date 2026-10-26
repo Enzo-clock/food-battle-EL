@@ -32,6 +32,15 @@ class DuelController
                 $result = $this->buildResult($battles->results($flash['battle']), $flash);
             }
         }
+        if (!$duel && isset($_GET['a'], $_GET['b'])) {
+            $a = (int) $_GET['a'];
+            $b = (int) $_GET['b'];
+            $dishes = $battles->dishesInCategory($category);
+
+            if ($a !== $b && isset($dishes[$a], $dishes[$b])) {
+                $duel = [$dishes[$a], $dishes[$b]];
+            }
+        }
         if (!$duel) {
             $duel = $battles->randomDuel($category, $userId, $_SESSION['duel_skip'] ?? []);
         }
