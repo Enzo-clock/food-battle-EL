@@ -96,22 +96,21 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <div class="create-form__fields">
                     <fieldset class="create-form__group">
-                        <legend>Catégories <span class="field__req" aria-hidden="true">*</span></legend>
-                        <p class="field__hint" id="categories-hint">Une ou plusieurs. Le plat sera tiré au sort dans les duels de chacune.
-                            Il en manque une ? <a href="/categorie/creer?retour=plat">Crée-la</a>.</p>
+                        <legend>Catégorie <span class="field__req" aria-hidden="true">*</span></legend>
+                        <p class="field__hint" id="category-hint">Le plat sera tiré au sort dans les duels de cette catégorie.
+                            Elle n’existe pas encore ? <a href="/categorie/creer?retour=plat">Crée-la</a>.</p>
 
-                        <div class="choice-grid" role="group" aria-label="Catégories du plat"
-                            aria-describedby="categories-hint" data-scroll-fade data-choice-group>
+                        <div class="choice-grid" role="radiogroup" aria-label="Catégorie du plat"
+                            aria-describedby="category-hint" data-scroll-fade data-choice-group>
                             <?php foreach ($categories as $id => $key): ?>
                                 <?php $tone = category_tone($key); ?>
-                                <label class="choice choice--<?= h($tone) ?>">
-                                    <input type="checkbox" name="categories[]" value="<?= (int) $id ?>"
-                                        <?= in_array($id, $old['categories'], true) ? 'checked' : '' ?>>
+                                <label class="choice choice--radio choice--<?= h($tone) ?>">
+                                    <input type="radio" name="category_id" value="<?= (int) $id ?>" required
+                                        <?= (int) $old['category_id'] === (int) $id ? 'checked' : '' ?>>
                                     <span><?= h(category_label($key)) ?></span>
                                 </label>
                             <?php endforeach ?>
                         </div>
-                        <p class="choice-count" aria-live="polite" data-choice-count></p>
                     </fieldset>
 
                     <fieldset class="create-form__group">

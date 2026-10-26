@@ -60,20 +60,22 @@
     update();
   });
 
-  // Compteur de cases cochées (« 2 sélectionnées »), utile quand la liste défile
+  // Listes de choix (cases ou boutons radio) qui défilent
   document.querySelectorAll('[data-choice-group]').forEach(function (group) {
+    // Compteur « 2 catégories sélectionnées », seulement pour les choix multiples
     var counter = group.parentElement.querySelector('[data-choice-count]');
-    if (!counter) return;
-    function update() {
-      var n = group.querySelectorAll('input[type="checkbox"]:checked').length;
-      counter.textContent = n === 0 ? 'Aucune catégorie sélectionnée'
-        : n + ' catégorie' + (n > 1 ? 's sélectionnées' : ' sélectionnée');
+    if (counter) {
+      var update = function () {
+        var n = group.querySelectorAll('input[type="checkbox"]:checked').length;
+        counter.textContent = n === 0 ? 'Aucune catégorie sélectionnée'
+          : n + ' catégorie' + (n > 1 ? 's sélectionnées' : ' sélectionnée');
+      };
+      group.addEventListener('change', update);
+      update();
     }
-    group.addEventListener('change', update);
-    update();
 
-    // Case pré-cochée hors de la zone visible (ex. catégorie qu'on vient de créer) : on la montre
-    var firstChecked = group.querySelector('input[type="checkbox"]:checked');
+    // Choix pré-sélectionné hors de la zone visible (ex. catégorie qu'on vient de créer) : on le montre
+    var firstChecked = group.querySelector('input:checked');
     if (firstChecked) {
       var item = firstChecked.closest('label') || firstChecked;
       if (item.offsetTop + item.offsetHeight > group.clientHeight) {

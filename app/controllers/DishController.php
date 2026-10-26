@@ -36,8 +36,8 @@ class DishController
             'price'            => '',
             // ?restaurant=ID pré-sélectionne un restaurant (lien depuis sa fiche, plus tard)
             'establishment_id' => (string) (int) ($_GET['restaurant'] ?? 0),
-            // ?categorie=ID pré-coche une catégorie (retour depuis « Ajouter une catégorie »)
-            'categories'       => isset($_GET['categorie']) ? [(int) $_GET['categorie']] : [],
+            // ?categorie=ID pré-sélectionne la catégorie (retour depuis « Ajouter une catégorie »)
+            'category_id'      => (int) ($_GET['categorie'] ?? 0),
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,7 +47,8 @@ class DishController
             $old['description'] = trim((string) ($_POST['description'] ?? ''));
             $old['price'] = trim((string) ($_POST['price'] ?? ''));
             $old['establishment_id'] = (string) ($_POST['establishment_id'] ?? '0');
-            $old['categories'] = array_map('intval', (array) ($_POST['categories'] ?? []));
+            // Une seule catégorie par plat : un plat appartient à une seule famille de duels.
+            $old['category_id'] = (int) ($_POST['category_id'] ?? 0);
 
             // Nom
             if ($old['name'] === '') {
@@ -78,13 +79,11 @@ class DishController
                 $errors[] = 'Le restaurant choisi n’existe pas.';
             }
 
-            // Catégories : au moins une, et uniquement des catégories existantes
-            $categoryIds = array_values(array_unique(array_filter(
-                $old['categories'],
-                static fn(int $id): bool => isset($categories[$id])
-            )));
-            if (!$categoryIds) {
-                $errors[] = 'Choisis au moins une catégorie : sans catégorie, le plat ne peut pas entrer dans les duels.';
+            // Catégorie : obligatoire, et elle doit exister en base
+            if ($old['category_id'] === 0) {
+                $errors[] = 'Choisis une catégorie : sans catégorie, le plat ne peut pas entrer dans les duels.';
+            } elseif (!isset($categories[$old['category_id']])) {
+                $errors[] = 'La catégorie choisie n’existe pas.';
             }
 
             // Photo facultative : sans elle, c'est l'image de la catégorie qui s'affiche.
@@ -102,7 +101,7 @@ class DishController
                         $price,
                         $establishmentId !== 0 ? $establishmentId : null,
                         (int) $_SESSION['user_id'],
-                        $categoryIds,
+                        [$old['category_id']],
                         $picture
                     );
 

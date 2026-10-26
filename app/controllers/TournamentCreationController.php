@@ -2,223 +2,128 @@
 // filepath: app/controllers/TournamentCreationController.php
 
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../models/Tournament.php';
 
+/**
+ * GET/POST /tournoi/creer : un tournoi réunit 4 duels libres de l'utilisateur,
+ * d'une même catégorie et sans plat en commun. Ils deviennent les quarts de finale,
+ * un match par jour à partir de la date de début.
+ */
 class TournamentCreationController
 {
-    public function __construct(private PDO $db) {}
+    public const QUARTERS = 4;
+    private const NAME_MAX = 150; // tournaments.name VARCHAR(150)
+
+    public function __construct(private PDO $db)
+    {
+    }
 
     public function create(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+        // Comme les autres pages de création : on renvoie vers la connexion.
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /login', true, 303);
+            exit;
         }
 
-        $userId = (int) ($_SESSION['user_id'] ?? 0);
-
-        if ($userId <= 0) {
-            http_response_code(403);
-            exit('Connexion requise.');
-        }
-
+        $userId = (int) $_SESSION['user_id'];
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-        if (!in_array($method, ['GET', 'POST'], true)) {
-            http_response_code(405);
-            exit('Méthode non autorisée.');
-        }
-
-        $success = null;
-
-        if ($method === 'GET' && isset($_SESSION['tournament_created'])) {
-            $success = $_SESSION['tournament_created'];
-            unset($_SESSION['tournament_created']);
-        }
-
+        $tournament = new Tournament($this->db);
         $categories = categories();
+
+        // Message de succès après redirection (pattern PRG)
+        $success = $_SESSION['tournament_created'] ?? null;
+        unset($_SESSION['tournament_created']);
+
+        // Duels disponibles, et combien par catégorie (pour les pastilles)
+        $battles = $tournament->availableBattles($userId);
+        $duelCounts = array_fill_keys(array_keys($categories), 0);
+        foreach ($battles as $battle) {
+            foreach ($battle['shared'] as $slug) {
+                if (isset($duelCounts[$slug])) {
+                    $duelCounts[$slug]++;
+                }
+            }
+        }
+        $duelCounts = array_filter($duelCounts); // seules les catégories où l'utilisateur a des duels
+
         $errors = [];
-        $selectedBattleIds = [];
-        $title = 'Créer un tournoi';
-
-        $requestedCategory = (string) (
-            $_POST['category']
-            ?? $_GET['categorie']
-            ?? ''
-        );
-
-        $categoryIsValid = $requestedCategory !== ''
-            && array_key_exists($requestedCategory, $categories);
-
-        $category = $categoryIsValid ? $requestedCategory : '';
+        $today = date('Y-m-d');
+        $old = [
+            'name'       => '',
+            'start_date' => date('Y-m-d', strtotime('+1 day')),
+            'battle_ids' => [],
+            // ?categorie=slug, sinon la catégorie où l'utilisateur a le plus de duels
+            'category'   => (string) ($_GET['categorie'] ?? ''),
+        ];
+        if (!isset($duelCounts[$old['category']])) {
+            arsort($duelCounts);
+            $old['category'] = (string) (array_key_first($duelCounts) ?? '');
+            ksort($duelCounts);
+        }
 
         if ($method === 'POST') {
             check_post();
 
-            if ($requestedCategory === '') {
-                $errors[] = 'Choisis une catégorie.';
-            } elseif (!$categoryIsValid) {
-                $errors[] = 'La catégorie sélectionnée est invalide.';
+            $old['name'] = trim((string) ($_POST['name'] ?? ''));
+            $old['start_date'] = (string) ($_POST['start_date'] ?? '');
+            $old['category'] = (string) ($_POST['category'] ?? '');
+            $old['battle_ids'] = array_values(array_unique(array_filter(
+                array_map('intval', (array) ($_POST['battle_ids'] ?? [])),
+                static fn(int $id): bool => $id > 0
+            )));
+
+            if (!isset($categories[$old['category']])) {
+                $errors[] = 'Choisis la catégorie du tournoi.';
             }
 
-            $rawIds = $_POST['battle_ids'] ?? null;
+            if (count($old['battle_ids']) !== self::QUARTERS) {
+                $errors[] = 'Choisis exactement ' . self::QUARTERS . ' duels pour les quarts de finale.';
+            }
 
-            if (!is_array($rawIds) || count($rawIds) !== 4) {
-                $errors[] = 'Sélectionne exactement quatre battles.';
-            } else {
-                foreach ($rawIds as $rawId) {
-                    $id = filter_var($rawId, FILTER_VALIDATE_INT);
+            if ($old['name'] === '') {
+                $errors[] = 'Donne un nom au tournoi.';
+            } elseif (mb_strlen($old['name']) > self::NAME_MAX) {
+                $errors[] = 'Le nom ne doit pas dépasser ' . self::NAME_MAX . ' caractères.';
+            }
 
-                    if ($id === false || $id <= 0) {
-                        $errors[] = 'La sélection contient un identifiant invalide.';
-                        $selectedBattleIds = [];
-                        break;
-                    }
-
-                    $selectedBattleIds[] = (int) $id;
-                }
-
-                if (
-                    count($selectedBattleIds) === 4
-                    && count(array_unique($selectedBattleIds)) !== 4
-                ) {
-                    $errors[] = 'Les quatre battles doivent être différents.';
-                }
+            $start = DateTimeImmutable::createFromFormat('!Y-m-d', $old['start_date']);
+            if (!$start || $start->format('Y-m-d') !== $old['start_date']) {
+                $errors[] = 'La date de début est invalide.';
+            } elseif ($old['start_date'] < $today) {
+                $errors[] = 'La date de début ne peut pas être passée.';
             }
 
             if (!$errors) {
-                $placeholders = implode(
-                    ', ',
-                    array_fill(0, 4, '?')
-                );
+                try {
+                    // Le modèle revérifie tout dans une transaction : duels à l'utilisateur,
+                    // encore libres, de la catégorie, et 8 plats différents.
+                    $tournamentId = $tournament->createWithQuarterfinals(
+                        $old['name'],
+                        $old['start_date'],
+                        $userId,
+                        $old['category'],
+                        $old['battle_ids']
+                    );
 
-                $sql = "
-                    SELECT b.id, b.dish_1_id, b.dish_2_id
-                    FROM battles b
-                    JOIN dishes d1 ON d1.id = b.dish_1_id
-                    JOIN dishes d2 ON d2.id = b.dish_2_id
-                    WHERE b.id IN ($placeholders)
-                      AND b.creator_id = ?
-                      AND b.tournament_id IS NULL
-                      AND EXISTS (
-                          SELECT 1
-                          FROM dish_categories dc
-                          JOIN categories c ON c.id = dc.category_id
-                          WHERE dc.dish_id = d1.id
-                            AND c.name = ?
-                      )
-                      AND EXISTS (
-                          SELECT 1
-                          FROM dish_categories dc
-                          JOIN categories c ON c.id = dc.category_id
-                          WHERE dc.dish_id = d2.id
-                            AND c.name = ?
-                      )
-                ";
-
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute([
-                    ...$selectedBattleIds,
-                    $userId,
-                    $category,
-                    $category,
-                ]);
-
-                $validBattles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                $validBattleIds = array_map(
-                    'intval',
-                    array_column($validBattles, 'id')
-                );
-
-                if (count($validBattleIds) !== 4) {
-                    $errors[] = 'Un ou plusieurs battles ne sont plus disponibles, ne t’appartiennent pas ou ne correspondent pas à cette catégorie.';
-                } else {
-                    $dishIds = [];
-
-                    foreach ($validBattles as $battle) {
-                        $dishIds[] = (int) $battle['dish_1_id'];
-                        $dishIds[] = (int) $battle['dish_2_id'];
-                    }
-
-                    if (count(array_unique($dishIds)) !== 8) {
-                        $errors[] = 'Un même plat ne peut pas apparaître dans plusieurs battles du tournoi.';
-                    }
+                    $_SESSION['tournament_created'] = [
+                        'id'         => $tournamentId,
+                        'name'       => $old['name'],
+                        'start_date' => $old['start_date'],
+                    ];
+                    header('Location: /tournoi/creer', true, 303);
+                    exit;
+                } catch (InvalidArgumentException $e) {
+                    $errors[] = $e->getMessage();
+                } catch (Throwable $e) {
+                    error_log($e->getMessage());
+                    $errors[] = 'La création du tournoi a échoué. Réessaie.';
                 }
             }
         }
 
-        $sql = "
-            SELECT
-                b.id AS battle_id,
-                d1.name AS dish_1_name,
-                d2.name AS dish_2_name
-            FROM battles b
-            JOIN dishes d1 ON d1.id = b.dish_1_id
-            JOIN dishes d2 ON d2.id = b.dish_2_id
-            WHERE b.creator_id = :creator_id
-              AND b.tournament_id IS NULL
-        ";
-
-        $params = ['creator_id' => $userId];
-
-        if ($category !== '') {
-            $sql .= "
-                AND EXISTS (
-                    SELECT 1
-                    FROM dish_categories dc1
-                    JOIN categories c1 ON c1.id = dc1.category_id
-                    WHERE dc1.dish_id = d1.id
-                      AND c1.name = :category_1
-                )
-                AND EXISTS (
-                    SELECT 1
-                    FROM dish_categories dc2
-                    JOIN categories c2 ON c2.id = dc2.category_id
-                    WHERE dc2.dish_id = d2.id
-                      AND c2.name = :category_2
-                )
-            ";
-
-            $params['category_1'] = $category;
-            $params['category_2'] = $category;
-        }
-
-        $name = trim((string) ($_POST['name'] ?? ''));
-        $startDate = (string) ($_POST['start_date'] ?? '');
-
-        if ($method === 'POST' && !$errors) {
-            require_once __DIR__ . '/../models/Tournament.php';
-
-            try {
-                $tournament = new Tournament($this->db);
-
-                $tournamentId = $tournament->createWithQuarterfinals(
-                    $name,
-                    $startDate,
-                    $userId,
-                    $category,
-                    $selectedBattleIds
-                );
-
-                $_SESSION['tournament_created'] = [
-                    'id' => $tournamentId,
-                    'name' => $name,
-                ];
-
-                header('Location: /tournoi/creer', true, 303);
-                exit;
-            } catch (InvalidArgumentException $error) {
-                $errors[] = $error->getMessage();
-            } catch (Throwable $error) {
-                error_log($error->getMessage());
-                $errors[] = 'La création du tournoi a échoué. Réessaie.';
-            }
-        }
-
-        $sql .= ' ORDER BY b.id DESC';
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $battles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        $quarters = self::QUARTERS;
+        $title = 'Créer un tournoi';
         require __DIR__ . '/../views/createtournament.php';
     }
 }
