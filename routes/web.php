@@ -62,6 +62,12 @@ if ($path === '/categorie/creer' && in_array($method, ['GET', 'POST'], true)) {
     exit;
 }
 
+if ($path === '/dashboard' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/DashboardController.php';
+    (new DashboardController($db))->index();
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',
