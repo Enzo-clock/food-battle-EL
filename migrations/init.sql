@@ -264,6 +264,174 @@ VALUES
         14.00,
         1,
         6
+    ),
+    (
+        'Le Montagnard',
+        'Steak, raclette, oignons caramélisés et sauce poivrée.',
+        14.50,
+        1,
+        1
+    ),
+    (
+        'Le BBQ Bacon',
+        'Steak, bacon grillé, cheddar et sauce barbecue.',
+        13.50,
+        1,
+        4
+    ),
+    (
+        'Le Chèvre Miel',
+        'Steak, chèvre, miel et roquette.',
+        13.00,
+        1,
+        1
+    ),
+    (
+        'Le Poulet Avocat',
+        'Poulet grillé, avocat, salade et sauce yaourt.',
+        12.50,
+        1,
+        4
+    ),
+    (
+        'Le Bleu du Nord',
+        'Steak, fromage bleu, poire et oignons rouges.',
+        14.00,
+        1,
+        1
+    ),
+    (
+        'Le Crispy Veggie',
+        'Galette de légumes croustillante, cheddar et sauce tartare.',
+        11.50,
+        1,
+        4
+    ),
+    (
+        'Le Double Bacon',
+        'Deux steaks, bacon fumé, cheddar et sauce burger.',
+        15.00,
+        1,
+        1
+    ),
+    (
+        'Le Raclette',
+        'Steak, fromage à raclette, pommes de terre et oignons.',
+        14.50,
+        1,
+        4
+    ),
+    (
+        'Le Tacos Andalou',
+        'Poulet mariné, poivrons et sauce andalouse.',
+        10.50,
+        1,
+        2
+    ),
+    (
+        'Le Tacos Curry',
+        'Poulet, pommes de terre et sauce curry douce.',
+        10.00,
+        1,
+        5
+    ),
+    (
+        'Le Tacos Mexicain',
+        'Bœuf épicé, haricots rouges, maïs et salsa.',
+        11.50,
+        1,
+        2
+    ),
+    (
+        'Le Tacos Savoyard',
+        'Poulet, lardons, pommes de terre et reblochon.',
+        12.00,
+        1,
+        5
+    ),
+    (
+        'Le Tacos Falafel',
+        'Falafels, crudités et sauce blanche aux herbes.',
+        9.50,
+        1,
+        2
+    ),
+    (
+        'Le Tacos Trois Fromages',
+        'Poulet, emmental, cheddar et mozzarella.',
+        11.00,
+        1,
+        5
+    ),
+    (
+        'Le Tacos Kebab',
+        'Viande kebab, salade, tomate et sauce algérienne.',
+        10.50,
+        1,
+        2
+    ),
+    (
+        'Le Tacos Montagnard',
+        'Bœuf, pommes de terre, raclette et oignons confits.',
+        12.50,
+        1,
+        5
+    ),
+    (
+        'La Reine',
+        'Tomate, mozzarella, jambon et champignons.',
+        12.50,
+        1,
+        3
+    ),
+    (
+        'La Végétarienne',
+        'Tomate, mozzarella, courgettes, poivrons et olives.',
+        12.00,
+        1,
+        6
+    ),
+    (
+        'La Diavola',
+        'Tomate, mozzarella, salami piquant et piment.',
+        13.00,
+        1,
+        3
+    ),
+    (
+        'La Poulet Barbecue',
+        'Poulet grillé, mozzarella, oignons rouges et sauce barbecue.',
+        13.50,
+        1,
+        6
+    ),
+    (
+        'La Nordique',
+        'Crème, mozzarella, saumon fumé et aneth.',
+        15.00,
+        1,
+        3
+    ),
+    (
+        'La Prosciutto',
+        'Tomate, mozzarella, jambon cru et roquette.',
+        14.00,
+        1,
+        6
+    ),
+    (
+        'La Forestière',
+        'Crème, mozzarella, champignons et oignons.',
+        12.50,
+        1,
+        3
+    ),
+    (
+        'La Méditerranéenne',
+        'Tomate, mozzarella, artichauts, olives et tomates séchées.',
+        13.00,
+        1,
+        6
     );
 
 INSERT INTO
@@ -280,7 +448,31 @@ VALUES
     (9, 2),
     (10, 2),
     (11, 3),
-    (12, 3);
+    (12, 3),
+    (13, 1),
+    (14, 1),
+    (15, 1),
+    (16, 1),
+    (17, 1),
+    (18, 1),
+    (19, 1),
+    (20, 1),
+    (21, 2),
+    (22, 2),
+    (23, 2),
+    (24, 2),
+    (25, 2),
+    (26, 2),
+    (27, 2),
+    (28, 2),
+    (29, 3),
+    (30, 3),
+    (31, 3),
+    (32, 3),
+    (33, 3),
+    (34, 3),
+    (35, 3),
+    (36, 3);
 
 COMMIT;
 

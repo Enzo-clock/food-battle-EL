@@ -21,9 +21,9 @@ $dockGroups = [
             'icon'  => '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
         ],
         [
-            'href'  => null,
-            'label' => 'Tournoi',
-            'short' => 'Tournoi',
+            'href'  => '/tournoi/creer',
+            'label' => 'Ajouter un Tournoi',
+            'short' => '+ Tournoi',
             // trophée
             'icon'  => '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>',
         ],
