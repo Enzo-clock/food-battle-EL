@@ -1,8 +1,10 @@
 <?php
 // filepath: app/views/createdish.php
-// Variables fournies par DishController::create() : $errors, $old, $categories, $establishments
+// Variables fournies par DishController::create() :
+// $errors, $old, $categories, $establishments, $source (plat dupliqué ou null),
+// $created (plat qui vient d'être créé, ou null), $original + $originalPlan (après une duplication)
 $errors ??= [];
-$success = isset($_GET['success']);
+$success = $created !== null;
 
 // Un navigateur ne conserve jamais un fichier choisi après un envoi en erreur :
 // on prévient l'utilisateur qu'il doit resélectionner sa photo.
@@ -14,19 +16,37 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="create-page">
     <header class="create-page__head">
         <span class="pill">CONTRIBUER</span>
-        <h1 class="create-page__title">Ajouter un plat</h1>
-        <p class="create-page__lead">Propose un plat du quartier : il entrera aussitôt dans les duels de sa catégorie.</p>
+        <?php if ($source && !$success): ?>
+            <h1 class="create-page__title">Dupliquer « <?= h($source['name']) ?> »</h1>
+            <p class="create-page__lead">Le formulaire reprend ton plat : choisis sa nouvelle catégorie et ajuste ce que tu veux.
+                Le plat d’origine ne change pas.</p>
+        <?php else: ?>
+            <h1 class="create-page__title">Ajouter un plat</h1>
+            <p class="create-page__lead">Propose un plat du quartier : il entrera aussitôt dans les duels de sa catégorie.</p>
+        <?php endif ?>
     </header>
 
     <?php if ($success): ?>
         <div class="create-success box" role="status">
-            <p class="create-success__title">Le plat a bien été ajouté.</p>
-            <p>Il apparaît déjà sur la carte et peut être tiré au sort dans les duels.</p>
+            <p class="create-success__title">« <?= h($created['name']) ?> » a bien été ajouté<?= $created['category'] ? ' en ' . h(category_label($created['category'])) : '' ?>.</p>
+            <p>Il apparaît déjà sur la carte et peut être tiré au sort dans les duels.
+                Une erreur ? <a href="/plat/<?= (int) $created['id'] ?>/modifier">Modifier ce plat</a>.</p>
             <div class="create-success__actions">
                 <a class="btn btn--primary" href="/plat/creer">Ajouter un autre plat</a>
                 <a class="btn btn--ghost" href="/duel">Lancer un duel</a>
             </div>
         </div>
+
+        <?php if ($originalPlan): ?>
+            <div class="box confirm-box confirm-box--<?= h($originalPlan['mode']) ?>">
+                <p class="create-success__title">Et le plat d’origine « <?= h($original['name']) ?> » ?</p>
+                <p class="confirm-box__text"><?= h($originalPlan['message']) ?></p>
+                <div class="create-success__actions">
+                    <a class="btn btn--dark" href="/plat/<?= (int) $original['id'] ?>/supprimer"><?= h($originalPlan['label']) ?> l’original</a>
+                    <a class="btn btn--ghost" href="/dashboard?onglet=plats">Garder les deux</a>
+                </div>
+            </div>
+        <?php endif ?>
     <?php else: ?>
 
         <?php if ($errors): ?>
@@ -42,6 +62,9 @@ require_once __DIR__ . '/../includes/header.php';
 
         <form class="create-form box" method="post" action="/plat/creer" enctype="multipart/form-data" data-lock-submit>
             <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+            <?php if ($source): ?>
+                <input type="hidden" name="depuis" value="<?= (int) $source['id'] ?>">
+            <?php endif ?>
 
             <p class="create-form__legend"><span aria-hidden="true">*</span> Champ obligatoire</p>
 
@@ -99,6 +122,11 @@ require_once __DIR__ . '/../includes/header.php';
                         <legend>Catégorie <span class="field__req" aria-hidden="true">*</span></legend>
                         <p class="field__hint" id="category-hint">Le plat sera tiré au sort dans les duels de cette catégorie.
                             Elle n’existe pas encore ? <a href="/categorie/creer?retour=plat">Crée-la</a>.</p>
+                        <p class="field__notice">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"
+                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                            La catégorie définit les duels du plat : elle ne pourra plus être changée.
+                        </p>
 
                         <div class="choice-grid" role="radiogroup" aria-label="Catégorie du plat"
                             aria-describedby="category-hint" data-scroll-fade data-choice-group>
@@ -138,13 +166,20 @@ require_once __DIR__ . '/../includes/header.php';
                                 <strong class="field__warn">Pense à resélectionner ta photo.</strong>
                             <?php endif ?>
                         </p>
+                        <?php if ($source && $source['picture'] !== null): ?>
+                            <label class="keep-picture">
+                                <input type="checkbox" name="keep_picture" value="1" <?= $old['keep_picture'] ? 'checked' : '' ?>>
+                                <img src="<?= h($source['picture']) ?>" alt="" width="56" height="56" loading="lazy">
+                                <span>Reprendre la photo du plat d’origine<br><small>Ignorée si tu en choisis une nouvelle.</small></span>
+                            </label>
+                        <?php endif ?>
                     </fieldset>
                 </div>
             </div>
 
             <div class="create-form__actions">
-                <a class="btn btn--ghost" href="/">Annuler</a>
-                <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…">Enregistrer le plat</button>
+                <a class="btn btn--ghost" href="<?= $source ? '/dashboard?onglet=plats' : '/' ?>">Annuler</a>
+                <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…"><?= $source ? 'Créer la copie' : 'Enregistrer le plat' ?></button>
             </div>
         </form>
     <?php endif ?>
