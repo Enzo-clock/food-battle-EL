@@ -16,10 +16,10 @@ if (!array_key_exists($cat, $categories)) {
 }
 
 $stats = $db->query(
-    'SELECT
+    "SELECT
         (SELECT COUNT(*) FROM active_dishes) AS dishes,
-        (SELECT COUNT(*) FROM establishments) AS establishments,
-        (SELECT COUNT(*) FROM categories) AS categories'
+        (SELECT COUNT(*) FROM establishments WHERE status = 'approved') AS establishments,
+        (SELECT COUNT(*) FROM categories WHERE status = 'approved') AS categories"
 )->fetch();
 
 $sql = "

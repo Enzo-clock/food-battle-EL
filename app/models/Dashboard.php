@@ -124,6 +124,7 @@ class Dashboard
         $where = $this->where($filter, 'd.creator_id', 'd.name', $params);
         $stmt = $this->db->prepare(
             "SELECT d.id, d.name, d.description, d.picture, d.price, d.archived_at, d.creator_id,
+                    d.status, d.rejection_reason,
                     u.username AS creator, e.name AS restaurant, e.city,
                     COALESCE((
                         SELECT json_agg(c.slug ORDER BY c.id)
@@ -138,7 +139,7 @@ class Dashboard
              JOIN users u ON u.id = d.creator_id
              LEFT JOIN establishments e ON e.id = d.establishment_id
              WHERE $where
-             ORDER BY d.archived_at IS NOT NULL, d.id DESC"
+             ORDER BY d.status = 'pending' DESC, d.archived_at IS NOT NULL, d.id DESC"
         );
         $stmt->execute($params);
 
@@ -156,13 +157,13 @@ class Dashboard
         $where = $this->where($filter, 'e.creator_id', 'e.name', $params);
         $stmt = $this->db->prepare(
             "SELECT e.id, e.name, e.description, e.city, e.address, e.creator_id, u.username AS creator,
-                    COUNT(d.id) AS dishes
+                    e.status, e.rejection_reason, COUNT(d.id) AS dishes
              FROM establishments e
              JOIN users u ON u.id = e.creator_id
              LEFT JOIN dishes d ON d.establishment_id = e.id
              WHERE $where
              GROUP BY e.id, u.username
-             ORDER BY e.id DESC"
+             ORDER BY e.status = 'pending' DESC, e.id DESC"
         );
         $stmt->execute($params);
         return $stmt->fetchAll();

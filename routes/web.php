@@ -44,11 +44,10 @@ if ($path === '/admin' && $method === 'GET') {
     exit;
 }
 
-// Modération des catégories proposées par les utilisateurs
-if (preg_match('#^/admin/categories/(\d+)/(valider|refuser)$#', $path, $m) && $method === 'POST') {
+// Modération des propositions (plats, restaurants, catégories) : /admin/plats/12/valider…
+if (preg_match('#^/admin/(plats|restaurants|categories)/(\d+)/(valider|refuser)$#', $path, $m) && $method === 'POST') {
     require_once __DIR__ . '/../app/controllers/AdminController.php';
-    $action = $m[2] === 'valider' ? 'approveCategory' : 'rejectCategory';
-    (new AdminController($db))->$action((int) $m[1]);
+    (new AdminController($db))->review($m[1], (int) $m[2], $m[3]);
     exit;
 }
 
