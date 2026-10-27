@@ -6,7 +6,7 @@
 // sur les contenus de tout le monde, avec une recherche et un onglet Utilisateurs.
 
 require_once __DIR__ . '/DashboardController.php';
-require_once __DIR__ . '/../models/Category.php';
+require_once __DIR__ . '/../models/Moderation.php';
 
 class AdminController extends DashboardController
 {
@@ -25,7 +25,7 @@ class AdminController extends DashboardController
         $dashboard = new Dashboard($this->db);
         $counts = $dashboard->counts(null) + ['utilisateurs' => count($dashboard->users())];
         // Pastille « à traiter » sur l'onglet : une file de modération qu'on ne voit pas n'est jamais traitée.
-        $this->alerts = ['categories' => (new Category($this->db))->pendingCount()];
+        $this->alerts = (new Moderation($this->db))->pendingCounts();
         $q = trim((string) ($_GET['q'] ?? ''));
 
         $this->render('admin', $tabs, ['user' => null, 'q' => mb_substr($q, 0, 100)], $counts);
@@ -66,41 +66,38 @@ class AdminController extends DashboardController
         exit;
     }
 
-    /** POST /admin/categories/{id}/valider : la catégorie apparaît partout (filtres, duels, ajout de plat). */
-    public function approveCategory(int $id): void
+    /**
+     * POST /admin/{plats|restaurants|categories}/{id}/{valider|refuser}
+     * Valider : la ressource devient publique. Refuser : motif obligatoire, lu par son auteur
+     * dans son dashboard ; la proposition n'est pas supprimée, il peut la corriger et la renvoyer.
+     */
+    public function review(string $type, int $id, string $decision): void
     {
         check_post();
-        $model = new Category($this->db);
-        $category = $model->find($id) ?? abort_page(404);
+        $moderation = new Moderation($this->db);
+        $name = $moderation->name($type, $id) ?? abort_page(404);
+        $return = '/admin?onglet=' . $type;
 
-        $ok = $model->review($id, 'approved');
-        flash_set($ok
-            ? '« ' . $category['name'] . ' » est validée : elle apparaît maintenant sur le site.'
-            : '« ' . $category['name'] . ' » n’était plus en attente : un autre administrateur l’a déjà traitée.',
-            $ok ? 'success' : 'error');
-        header('Location: /admin?onglet=categories', true, 303);
+        if ($decision === 'valider') {
+            $ok = $moderation->review($type, $id, 'approved');
+            flash_set($ok ? 'Validation effectuée : « ' . $name . ' » apparaît maintenant sur le site.' : $this->alreadyReviewed($name), $ok ? 'success' : 'error');
+        } else {
+            $reason = trim(preg_replace('/\s+/u', ' ', (string) ($_POST['reason'] ?? '')));
+            if ($reason === '' || mb_strlen($reason) > 255) {
+                flash_set('Indique un motif de refus (255 caractères maximum) : il aide l’auteur à corriger sa proposition.', 'error');
+            } elseif ($moderation->review($type, $id, 'rejected', $reason)) {
+                flash_set('Refus enregistré pour « ' . $name . ' » : son auteur verra le motif dans son dashboard.');
+            } else {
+                flash_set($this->alreadyReviewed($name), 'error');
+            }
+        }
+
+        header('Location: ' . $return, true, 303);
         exit;
     }
 
-    /**
-     * POST /admin/categories/{id}/refuser : refus avec un motif, lu par le créateur dans son dashboard.
-     * La catégorie n'est pas supprimée : le créateur peut la corriger et la renvoyer.
-     */
-    public function rejectCategory(int $id): void
+    private function alreadyReviewed(string $name): string
     {
-        check_post();
-        $model = new Category($this->db);
-        $category = $model->find($id) ?? abort_page(404);
-        $reason = trim(preg_replace('/\s+/u', ' ', (string) ($_POST['reason'] ?? '')));
-
-        if ($reason === '' || mb_strlen($reason) > 255) {
-            flash_set('Indique un motif de refus (255 caractères maximum) : il aide le créateur à corriger sa proposition.', 'error');
-        } elseif ($model->review($id, 'rejected', $reason)) {
-            flash_set('« ' . $category['name'] . ' » est refusée. Son créateur verra le motif dans son dashboard.');
-        } else {
-            flash_set('« ' . $category['name'] . ' » n’était plus en attente : un autre administrateur l’a déjà traitée.', 'error');
-        }
-        header('Location: /admin?onglet=categories', true, 303);
-        exit;
+        return 'Déjà traité : « ' . $name . ' » n’était plus en attente (un autre administrateur a tranché).';
     }
 }

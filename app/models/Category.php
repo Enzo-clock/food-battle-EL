@@ -62,34 +62,6 @@ class Category
             ->execute([$name, $color, $picture, $slug, $id]);
     }
 
-    /** Une proposition refusée puis corrigée par son créateur repart en validation. */
-    public function resubmit(int $id): void
-    {
-        $this->db->prepare(
-            "UPDATE categories SET status = 'pending', rejection_reason = NULL, reviewed_at = NULL
-             WHERE id = ? AND status = 'rejected'"
-        )->execute([$id]);
-    }
-
-    /**
-     * Décision de l'admin sur une proposition en attente.
-     * Retourne false si elle n'était plus en attente (déjà traitée par un autre admin).
-     */
-    public function review(int $id, string $status, ?string $reason = null): bool
-    {
-        $stmt = $this->db->prepare(
-            "UPDATE categories SET status = :status, rejection_reason = :reason, reviewed_at = CURRENT_TIMESTAMP
-             WHERE id = :id AND status = 'pending'"
-        );
-        $stmt->execute(['status' => $status, 'reason' => $reason, 'id' => $id]);
-        return $stmt->rowCount() === 1;
-    }
-
-    /** Nombre de propositions en attente (pastille de l'onglet Catégories du back-office). */
-    public function pendingCount(): int
-    {
-        return (int) $this->db->query("SELECT COUNT(*) FROM categories WHERE status = 'pending'")->fetchColumn();
-    }
 
     /**
      * Supprime la catégorie si elle n'a aucun plat : dish_categories.category_id (RESTRICT) refuse sinon.

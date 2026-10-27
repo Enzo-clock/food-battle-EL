@@ -12,6 +12,8 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="create-page__lead"><?= plural((int) $restaurant['dishes'], 'plat rattaché', 'plats rattachés') ?> à ce restaurant.</p>
     </header>
 
+    <?php $row = $restaurant; require __DIR__ . '/partials/moderation-status.php'; ?>
+
     <?php if ($errors): ?>
         <div class="auth__errors" role="alert" tabindex="-1" data-autofocus>
             <p><strong>Les modifications n’ont pas pu être enregistrées :</strong></p>
@@ -33,7 +35,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div class="create-form__actions">
             <a class="btn btn--ghost" href="<?= h($return) ?>">Annuler</a>
-            <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…">Enregistrer</button>
+            <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…"><?= $restaurant['status'] === 'rejected' ? 'Corriger et renvoyer' : 'Enregistrer' ?></button>
         </div>
     </form>
 

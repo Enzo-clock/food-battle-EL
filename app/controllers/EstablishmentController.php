@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../models/Establishment.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/manage.php';
+require_once __DIR__ . '/../models/Moderation.php';
 
 class EstablishmentController
 {
@@ -26,16 +27,17 @@ class EstablishmentController
 
             if (!$errors) {
                 try {
-                    (new Establishment($this->db))->create(
+                    $id = (new Establishment($this->db))->create(
                         $old['name'],
                         $old['description'] !== '' ? $old['description'] : null,
                         null, // plus de photo pour les restaurants
                         $old['city'],
                         $old['address'],
-                        current_user_id()
+                        current_user_id(),
+                        Moderation::initialStatus()
                     );
 
-                    header('Location: /restaurant/creer?success=1', true, 303);
+                    header('Location: /restaurant/creer?success=' . $id, true, 303);
                     exit;
                 } catch (Throwable $e) {
                     error_log($e->getMessage());
@@ -44,7 +46,13 @@ class EstablishmentController
             }
         }
 
-        $title = 'Ajouter un restaurant';
+        // Écran de succès : seulement pour son propre restaurant (validé ou en attente).
+        $created = isset($_GET['success']) ? (new Establishment($this->db))->find((int) $_GET['success']) : null;
+        if ($created && (int) $created['creator_id'] !== current_user_id()) {
+            $created = null;
+        }
+        $isAdmin = is_admin();
+        $title = $isAdmin ? 'Ajouter un restaurant' : 'Proposer un restaurant';
         require __DIR__ . '/../views/createrestaurant.php';
     }
 
@@ -54,6 +62,14 @@ class EstablishmentController
         $establishments = new Establishment($this->db);
         $restaurant = load_managed($establishments->find($id));
         $return = safe_return($_GET['retour'] ?? $_POST['retour'] ?? null, '/dashboard?onglet=restaurants');
+
+        // Une ressource validée appartient au site : seul un admin la modifie.
+        // Sinon, il suffirait de faire valider un contenu puis de le transformer.
+        if (!is_admin() && $restaurant['status'] === 'approved') {
+            flash_set('« ' . $restaurant['name'] . ' » est validé : seul un administrateur peut désormais le modifier.', 'error');
+            header('Location: ' . $return, true, 303);
+            exit;
+        }
 
         $errors = [];
         $old = [
@@ -75,7 +91,12 @@ class EstablishmentController
                     $old['city'],
                     $old['address']
                 );
-                flash_set('« ' . $old['name'] . ' » a été modifié.');
+                if ($restaurant['status'] === 'rejected') {
+                    (new Moderation($this->db))->resubmit('restaurants', $id);
+                    flash_set('« ' . $old['name'] . ' » est corrigé et renvoyé pour validation.');
+                } else {
+                    flash_set('« ' . $old['name'] . ' » a été modifié.');
+                }
                 header('Location: ' . $return, true, 303);
                 exit;
             }

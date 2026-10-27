@@ -5,9 +5,14 @@
 // $context ('user' | 'admin'), $tabs, $counts, $alerts, $active, $items, $total, $flash, $q
 
 $isAdmin = $context === 'admin';
-// Un utilisateur PROPOSE une catégorie (validée ensuite par un admin) : le bouton le dit.
-if (!is_admin() && isset($tabs['categories']['create'])) {
-    $tabs['categories']['create']['label'] = 'Proposer une catégorie';
+// Un utilisateur PROPOSE plats, restaurants et catégories (validés ensuite par un admin) : les boutons le disent.
+if (!is_admin()) {
+    $proposeLabels = ['plats' => 'Proposer un plat', 'restaurants' => 'Proposer un restaurant', 'categories' => 'Proposer une catégorie'];
+    foreach ($proposeLabels as $key => $label) {
+        if (isset($tabs[$key]['create'])) {
+            $tabs[$key]['create']['label'] = $label;
+        }
+    }
 }
 $tab = $tabs[$active];
 $today = date('Y-m-d');
@@ -304,7 +309,7 @@ require_once __DIR__ . '/../includes/header.php';
                         }
                     }
                     ?>
-                    <li class="dash-item dash-row<?= $d['archived_at'] !== null ? ' is-archived' : '' ?>">
+                    <li class="dash-item dash-row<?= $d['archived_at'] !== null ? ' is-archived' : '' ?><?= $d['status'] !== 'approved' ? ' is-' . h($d['status']) : '' ?>">
                         <img class="dash-row__thumb" src="<?= h($dishPicture($d['picture'], $firstCategory)) ?>"
                             alt="" width="88" height="88" loading="lazy">
                         <div class="dash-row__body">
@@ -318,21 +323,31 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?= $d['restaurant'] !== null ? h($d['restaurant']) . ' · ' . h($d['city']) : 'Plat maison' ?>
                             </p>
                             <p class="dash-meta">
+                                <?php $row = $d; $feminine = false; require __DIR__ . '/partials/moderation-badge.php'; ?>
                                 <?php foreach ($d['categories'] as $slug): ?>
                                     <span class="tag tone-<?= h(category_tone($slug)) ?>"><?= h(category_label($slug)) ?></span>
                                 <?php endforeach ?>
-                                <span><?= plural((int) $d['votes'], 'vote') ?> · <?= plural((int) $d['battles'], 'duel') ?></span>
+                                <?php if ($d['status'] === 'approved'): ?>
+                                    <span><?= plural((int) $d['votes'], 'vote') ?> · <?= plural((int) $d['battles'], 'duel') ?></span>
+                                <?php endif ?>
                                 <?= $byLine($d) ?>
                             </p>
+                            <?php $row = $d; require __DIR__ . '/partials/moderation-reason.php'; ?>
                         </div>
                         <div class="dash-row__aside">
                             <p class="dash-row__price"><?= $d['price'] !== null ? euro($d['price']) : '—' ?></p>
-                            <?php if ($duelCategory !== '' && $d['archived_at'] === null): ?>
+                            <?php if ($d['status'] === 'pending' && $isAdmin): ?>
+                                <?php $reviewType = 'plats'; $row = $d; require __DIR__ . '/partials/review-actions.php'; ?>
+                            <?php elseif ($duelCategory !== '' && $d['archived_at'] === null && $d['status'] === 'approved'): ?>
                                 <a class="link-strong" href="/duel/creer?<?= h(http_build_query(['categorie' => $duelCategory, 'a' => $d['id']])) ?>">
                                     Mettre en duel <span aria-hidden="true">→</span>
                                 </a>
                             <?php endif ?>
-                            <?php $type = 'plat'; $row = $d; $canEdit = true; require __DIR__ . '/partials/item-actions.php'; ?>
+                            <?php
+                            // Validé : seul un admin le modifie. En attente ou refusé : son auteur peut le corriger.
+                            $type = 'plat'; $row = $d; $canEdit = is_admin() || $d['status'] !== 'approved';
+                            require __DIR__ . '/partials/item-actions.php';
+                            ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -341,24 +356,35 @@ require_once __DIR__ . '/../includes/header.php';
         <?php elseif ($active === 'restaurants'): ?>
             <ul class="dash-list">
                 <?php foreach ($items as $r): ?>
-                    <li class="dash-item dash-row">
+                    <li class="dash-item dash-row<?= $r['status'] !== 'approved' ? ' is-' . h($r['status']) : '' ?>">
                         <span class="dash-row__thumb dash-row__thumb--icon tone-lemon"><?= $icon($tabs['restaurants']['icon'], 36) ?></span>
                         <div class="dash-row__body">
                             <h3 class="dash-item__title"><?= h($r['name']) ?></h3>
                             <p class="dash-row__place"><?= h($r['address']) ?> · <?= h($r['city']) ?> <?= $byLine($r) ?></p>
+                            <?php if ($r['status'] !== 'approved'): ?>
+                                <p class="dash-meta"><?php $row = $r; $feminine = false; require __DIR__ . '/partials/moderation-badge.php'; ?></p>
+                            <?php endif ?>
                             <?php if ($r['description']): ?>
                                 <p class="dash-row__desc"><?= h($r['description']) ?></p>
                             <?php endif ?>
+                            <?php $row = $r; require __DIR__ . '/partials/moderation-reason.php'; ?>
                         </div>
                         <div class="dash-row__aside">
-                            <p class="dash-stat">
-                                <strong><?= (int) $r['dishes'] ?></strong>
-                                <span><?= (int) $r['dishes'] > 1 ? 'plats' : 'plat' ?></span>
-                            </p>
-                            <a class="link-strong" href="/plat/creer?restaurant=<?= (int) $r['id'] ?>">
-                                Ajouter un plat ici <span aria-hidden="true">→</span>
-                            </a>
-                            <?php $type = 'restaurant'; $row = $r; $canEdit = true; require __DIR__ . '/partials/item-actions.php'; ?>
+                            <?php if ($r['status'] === 'pending' && $isAdmin): ?>
+                                <?php $reviewType = 'restaurants'; $row = $r; require __DIR__ . '/partials/review-actions.php'; ?>
+                            <?php elseif ($r['status'] === 'approved'): ?>
+                                <p class="dash-stat">
+                                    <strong><?= (int) $r['dishes'] ?></strong>
+                                    <span><?= (int) $r['dishes'] > 1 ? 'plats' : 'plat' ?></span>
+                                </p>
+                                <a class="link-strong" href="/plat/creer?restaurant=<?= (int) $r['id'] ?>">
+                                    Ajouter un plat ici <span aria-hidden="true">→</span>
+                                </a>
+                            <?php endif ?>
+                            <?php
+                            $type = 'restaurant'; $row = $r; $canEdit = is_admin() || $r['status'] !== 'approved';
+                            require __DIR__ . '/partials/item-actions.php';
+                            ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -379,10 +405,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 <span class="tag tone-<?= h($c['color']) ?> dash-row__chip"><?= h($c['name']) ?></span>
                             </h3>
                             <p class="dash-meta">
-                                <?php if ($status === 'pending'): ?>
-                                    <span class="dash-status dash-status--pending">En attente de validation</span>
-                                <?php elseif ($status === 'rejected'): ?>
-                                    <span class="dash-status dash-status--rejected">Refusée</span>
+                                <?php if ($status !== 'approved'): ?>
+                                    <?php $row = $c; $feminine = true; require __DIR__ . '/partials/moderation-badge.php'; ?>
                                 <?php elseif ($ready): ?>
                                     <span class="dash-status dash-status--ok">Prête pour les duels</span>
                                 <?php else: ?>
@@ -391,31 +415,11 @@ require_once __DIR__ . '/../includes/header.php';
                                 <span><?= $status === 'approved' ? 'Créée' : 'Proposée' ?> le <?= h(date_fr($c['created_at'])) ?></span>
                                 <?= $byLine($c) ?>
                             </p>
-                            <?php if ($status === 'rejected' && $c['rejection_reason']): ?>
-                                <p class="dash-reason"><strong>Motif :</strong> <?= h($c['rejection_reason']) ?></p>
-                            <?php elseif ($status === 'pending' && !$isAdmin): ?>
-                                <p class="dash-reason">Un administrateur va la relire. Elle n’est visible que par toi en attendant.</p>
-                            <?php endif ?>
+                            <?php $row = $c; require __DIR__ . '/partials/moderation-reason.php'; ?>
                         </div>
                         <div class="dash-row__aside">
                             <?php if ($status === 'pending' && $isAdmin): ?>
-                                <!-- File de modération : valider, ou refuser avec un motif (sans JavaScript) -->
-                                <div class="dash-review">
-                                    <form method="post" action="/admin/categories/<?= (int) $c['id'] ?>/valider">
-                                        <input type="hidden" name="token" value="<?= h(csrf()) ?>">
-                                        <button class="btn btn--xs btn--valid" type="submit">Valider</button>
-                                    </form>
-                                    <details class="dash-reject">
-                                        <summary class="btn btn--xs btn--danger-ghost">Refuser</summary>
-                                        <form method="post" action="/admin/categories/<?= (int) $c['id'] ?>/refuser" class="dash-reject__form">
-                                            <input type="hidden" name="token" value="<?= h(csrf()) ?>">
-                                            <label for="reason-<?= (int) $c['id'] ?>">Motif, lu par <?= h($c['creator']) ?></label>
-                                            <textarea id="reason-<?= (int) $c['id'] ?>" name="reason" rows="3" maxlength="255" required
-                                                placeholder="Ex. C’est un régime, pas un type de plat : ajoute ton plat dans sa catégorie."></textarea>
-                                            <button class="btn btn--xs btn--danger" type="submit">Confirmer le refus</button>
-                                        </form>
-                                    </details>
-                                </div>
+                                <?php $reviewType = 'categories'; $row = $c; require __DIR__ . '/partials/review-actions.php'; ?>
                             <?php elseif ($status === 'approved'): ?>
                                 <p class="dash-stat">
                                     <strong><?= $dishes ?></strong>

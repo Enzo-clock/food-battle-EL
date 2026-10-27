@@ -21,14 +21,15 @@ class Dish
         ?int $establishmentId,
         int $creatorId,
         array $categoryIds,
-        ?string $picture = null
+        ?string $picture = null,
+        string $status = 'pending' // 'approved' si un admin le crée (Moderation::initialStatus())
     ): int {
         $this->db->beginTransaction();
 
         try {
             $stmt = $this->db->prepare(
-                'INSERT INTO dishes (name, description, price, picture, establishment_id, creator_id)
-                 VALUES (:name, :description, :price, :picture, :establishment_id, :creator_id)
+                'INSERT INTO dishes (name, description, price, picture, establishment_id, creator_id, status, reviewed_at)
+                 VALUES (:name, :description, :price, :picture, :establishment_id, :creator_id, :status, :reviewed_at)
                  RETURNING id'
             );
             $stmt->execute([
@@ -38,6 +39,8 @@ class Dish
                 'picture'          => $picture,
                 'establishment_id' => $establishmentId,
                 'creator_id'       => $creatorId,
+                'status'           => $status,
+                'reviewed_at'      => $status === 'approved' ? date('Y-m-d H:i:s') : null,
             ]);
             $dishId = (int) $stmt->fetchColumn();
 

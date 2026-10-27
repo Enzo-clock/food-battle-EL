@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/manage.php';
 require_once __DIR__ . '/../models/Dish.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Establishment.php';
+require_once __DIR__ . '/../models/Moderation.php';
 
 class DishController
 {
@@ -89,7 +90,8 @@ class DishController
                         (int) $old['establishment_id'] ?: null,
                         current_user_id(),
                         [$old['category_id']],
-                        $picture
+                        $picture,
+                        Moderation::initialStatus()
                     );
 
                     $query = ['success' => $id] + ($source ? ['depuis' => $source['id']] : []);
@@ -110,9 +112,14 @@ class DishController
             $created = null;
         }
         $original = $created && $source ? $source : null;
-        $originalPlan = $original && $original['archived_at'] === null ? deletion_plan('plat', $original) : null;
+        // Proposer d'archiver l'original seulement si la copie est publiée :
+        // si elle était refusée, l'utilisateur n'aurait plus aucune version en ligne.
+        $originalPlan = $original && $original['archived_at'] === null && $created['status'] === 'approved'
+            ? deletion_plan('plat', $original)
+            : null;
 
-        $title = $source ? 'Dupliquer un plat' : 'Ajouter un plat';
+        $isAdmin = is_admin();
+        $title = $source ? 'Dupliquer un plat' : ($isAdmin ? 'Ajouter un plat' : 'Proposer un plat');
         require __DIR__ . '/../views/createdish.php';
     }
 
@@ -124,6 +131,14 @@ class DishController
         $establishments = (new Establishment($this->db))->allForSelect();
         $nameLocked = dish_name_locked($dish);
         $return = safe_return($_GET['retour'] ?? $_POST['retour'] ?? null, '/dashboard?onglet=plats');
+
+        // Une ressource validée appartient au site : seul un admin la modifie.
+        // Sinon, il suffirait de faire valider un contenu puis de le transformer.
+        if (!is_admin() && $dish['status'] === 'approved') {
+            flash_set('« ' . $dish['name'] . ' » est validé : seul un administrateur peut désormais le modifier.', 'error');
+            header('Location: ' . $return, true, 303);
+            exit;
+        }
 
         $errors = [];
         $old = [
@@ -173,7 +188,12 @@ class DishController
                     if (array_key_exists('picture', $fields)) {
                         delete_uploaded_picture($dish['picture']); // l'ancienne photo n'est plus utilisée
                     }
-                    flash_set('« ' . ($fields['name'] ?? $dish['name']) . ' » a été modifié.');
+                    if ($dish['status'] === 'rejected') {
+                        (new Moderation($this->db))->resubmit('plats', $id);
+                        flash_set('« ' . ($fields['name'] ?? $dish['name']) . ' » est corrigé et renvoyé pour validation.');
+                    } else {
+                        flash_set('« ' . ($fields['name'] ?? $dish['name']) . ' » a été modifié.');
+                    }
                     header('Location: ' . $return, true, 303);
                     exit;
                 } catch (Throwable $e) {

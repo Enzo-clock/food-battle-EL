@@ -21,12 +21,16 @@ require_once __DIR__ . '/../includes/header.php';
             <p class="create-page__lead">Le formulaire reprend ton plat : choisis sa nouvelle catégorie et ajuste ce que tu veux.
                 Le plat d’origine ne change pas.</p>
         <?php else: ?>
-            <h1 class="create-page__title">Ajouter un plat</h1>
-            <p class="create-page__lead">Propose un plat du quartier : il entrera aussitôt dans les duels de sa catégorie.</p>
+            <h1 class="create-page__title"><?= $isAdmin ? 'Ajouter un plat' : 'Proposer un plat' ?></h1>
+            <p class="create-page__lead">
+                <?= $isAdmin
+                    ? 'Ajoute un plat du quartier : il entre aussitôt dans les duels de sa catégorie.'
+                    : 'Propose un plat du quartier : dès qu’un administrateur l’a validé, il entre dans les duels de sa catégorie.' ?>
+            </p>
         <?php endif ?>
     </header>
 
-    <?php if ($success): ?>
+    <?php if ($success && $created['status'] === 'approved'): ?>
         <div class="create-success box" role="status">
             <p class="create-success__title">« <?= h($created['name']) ?> » a bien été ajouté<?= $created['category'] ? ' en ' . h(category_label($created['category'])) : '' ?>.</p>
             <p>Il apparaît déjà sur la carte et peut être tiré au sort dans les duels.
@@ -34,6 +38,19 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="create-success__actions">
                 <a class="btn btn--primary" href="/plat/creer">Ajouter un autre plat</a>
                 <a class="btn btn--ghost" href="/duel">Lancer un duel</a>
+            </div>
+        </div>
+    <?php elseif ($success): ?>
+        <div class="create-success create-success--pending box" role="status">
+            <p class="create-success__title">« <?= h($created['name']) ?> » est envoyé pour validation.</p>
+            <p>Un administrateur va le relire. En attendant, il n’est visible que par toi, dans ton dashboard.
+                Une erreur ? <a href="/plat/<?= (int) $created['id'] ?>/modifier">Corrige-le</a> tant qu’il n’est pas validé.
+                <?php if ($source): ?>
+                    Le plat d’origine reste en ligne : une fois la copie validée, tu pourras l’archiver depuis ton dashboard.
+                <?php endif ?></p>
+            <div class="create-success__actions">
+                <a class="btn btn--primary" href="/dashboard?onglet=plats">Suivre ma proposition</a>
+                <a class="btn btn--ghost" href="/plat/creer">Proposer un autre plat</a>
             </div>
         </div>
 
@@ -179,7 +196,7 @@ require_once __DIR__ . '/../includes/header.php';
 
             <div class="create-form__actions">
                 <a class="btn btn--ghost" href="<?= $source ? '/dashboard?onglet=plats' : '/' ?>">Annuler</a>
-                <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…"><?= $source ? 'Créer la copie' : 'Enregistrer le plat' ?></button>
+                <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…"><?= $source ? ($isAdmin ? 'Créer la copie' : 'Proposer la copie') : ($isAdmin ? 'Enregistrer le plat' : 'Proposer le plat') ?></button>
             </div>
         </form>
     <?php endif ?>

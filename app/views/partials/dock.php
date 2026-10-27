@@ -31,14 +31,14 @@ $dockGroups = [
     'Contribuer' => [
         [
             'href'  => '/plat/creer',
-            'label' => 'Ajouter un plat',
+            'label' => is_admin() ? 'Ajouter un plat' : 'Proposer un plat',
             'short' => '+ Plat',
             // burger : un plat (le badge « + » orange indique l'ajout)
             'icon'  => '<path d="M4 11a8 7 0 0 1 16 0z"/><path d="M9.5 7.5h.01M12.5 6.5h.01M14.5 8.5h.01"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1"/><path d="M4 18h16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>',
         ],
         [
             'href'  => '/restaurant/creer',
-            'label' => 'Ajouter un restaurant',
+            'label' => is_admin() ? 'Ajouter un restaurant' : 'Proposer un restaurant',
             'short' => '+ Resto',
             // devanture avec auvent
             'icon'  => '<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6"/><path d="M10 20v-5h4v5"/>',

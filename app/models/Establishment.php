@@ -13,11 +13,12 @@ class Establishment
         ?string $picture,
         string $city,
         string $address,
-        int $creatorId
+        int $creatorId,
+        string $status = 'pending' // 'approved' si un admin le crée (Moderation::initialStatus())
     ): int {
         $stmt = $this->db->prepare(
-            'INSERT INTO establishments (name, description, picture, city, address, creator_id)
-             VALUES (:name, :description, :picture, :city, :address, :creator_id)
+            'INSERT INTO establishments (name, description, picture, city, address, creator_id, status, reviewed_at)
+             VALUES (:name, :description, :picture, :city, :address, :creator_id, :status, :reviewed_at)
              RETURNING id'
         );
 
@@ -28,6 +29,8 @@ class Establishment
             'city' => $city,
             'address' => $address,
             'creator_id' => $creatorId,
+            'status' => $status,
+            'reviewed_at' => $status === 'approved' ? date('Y-m-d H:i:s') : null,
         ]);
 
         return (int) $stmt->fetchColumn();
@@ -36,7 +39,9 @@ class Establishment
     /** Liste pour un menu déroulant : [id => ['name' => …, 'city' => …]], triée par nom. */
     public function allForSelect(): array
     {
-        $rows = $this->db->query('SELECT id, name, city FROM establishments ORDER BY name, city')->fetchAll();
+        // Seuls les restaurants validés : rattacher un plat à une proposition en attente
+        // le laisserait sur une adresse fantôme si elle était refusée.
+        $rows = $this->db->query("SELECT id, name, city FROM establishments WHERE status = 'approved' ORDER BY name, city")->fetchAll();
 
         $list = [];
         foreach ($rows as $row) {

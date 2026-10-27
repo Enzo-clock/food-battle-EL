@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/upload.php';
 require_once __DIR__ . '/../models/Category.php';
+require_once __DIR__ . '/../models/Moderation.php';
 require_once __DIR__ . '/../includes/manage.php';
 
 class CategoryController
@@ -58,7 +59,7 @@ class CategoryController
                         $old['color'],
                         $picture,
                         current_user_id(),
-                        $isAdmin ? 'approved' : 'pending'
+                        Moderation::initialStatus()
                     );
 
                     // Retour direct vers l'ajout de plat seulement si la catégorie est utilisable tout de suite.
@@ -135,7 +136,7 @@ class CategoryController
                         delete_uploaded_picture($category['picture']);
                     }
                     if ($category['status'] === 'rejected') {
-                        $model->resubmit($id);
+                        (new Moderation($this->db))->resubmit('categories', $id);
                         flash_set('« ' . $old['name'] . ' » est corrigée et renvoyée pour validation.');
                     } else {
                         flash_set('La catégorie « ' . $old['name'] . ' » a été modifiée.');

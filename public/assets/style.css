@@ -4444,3 +4444,7 @@ details>summary {
         box-shadow: none;
     }
 }
+
+.dash-flash--pending {
+    background: var(--lemon);
+}

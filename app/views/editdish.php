@@ -24,6 +24,8 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
     </header>
 
+    <?php $row = $dish; require __DIR__ . '/partials/moderation-status.php'; ?>
+
     <?php if ($dish['archived_at'] !== null): ?>
         <div class="box confirm-box confirm-box--archive">
             <p class="confirm-box__text">
@@ -147,7 +149,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div class="create-form__actions">
             <a class="btn btn--ghost" href="<?= h($return) ?>">Annuler</a>
-            <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…">Enregistrer</button>
+            <button class="btn btn--primary" type="submit" data-submit-label="Enregistrement…"><?= $dish['status'] === 'rejected' ? 'Corriger et renvoyer' : 'Enregistrer' ?></button>
         </div>
     </form>
 

@@ -25,6 +25,7 @@ services:
       - ./migrations/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
       - ./migrations/002_archive_plats.sql:/docker-entrypoint-initdb.d/02-archive-plats.sql:ro
       - ./migrations/003_moderation_categories.sql:/docker-entrypoint-initdb.d/03-moderation-categories.sql:ro
+      - ./migrations/004_moderation_plats_restaurants.sql:/docker-entrypoint-initdb.d/04-moderation-plats-restaurants.sql:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U foodbattle -d foodbattle" ]
       interval: 3s
