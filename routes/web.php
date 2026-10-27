@@ -68,6 +68,36 @@ if ($path === '/dashboard' && $method === 'GET') {
     exit;
 }
 
+if ($path === '/play/tournament' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/TournamentPlayController.php';
+    (new TournamentPlayController($db))->index();
+    exit;
+}
+
+if (
+    $method === 'GET'
+    && preg_match('#^/play/tournament/(\d+)/(Q[1-4]|D[12]|F)$#', $path, $matches)
+) {
+    require_once __DIR__ . '/../app/controllers/TournamentPlayController.php';
+    (new TournamentPlayController($db))->show(
+        (int) $matches[1],
+        $matches[2]
+    );
+    exit;
+}
+
+if (
+    $method === 'POST'
+    && preg_match('#^/play/tournament/(\d+)/(Q[1-4]|D[12]|F)/vote$#', $path, $matches)
+) {
+    require_once __DIR__ . '/../app/controllers/TournamentPlayController.php';
+    (new TournamentPlayController($db))->vote(
+        (int) $matches[1],
+        $matches[2]
+    );
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',

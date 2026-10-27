@@ -56,7 +56,7 @@ $navName = $_SESSION['username'] ?? '';
                     <a class="site-nav__signup" href="/signup" <?= $currentPath === '/signup' ? 'aria-current="page"' : '' ?>>Inscription</a>
                 <?php endif ?>
 
-                <a class="btn btn--dark btn--sm" href="/duel">Jouer</a>
+                <a class="btn btn--dark btn--sm" href="/play/tournament">Jouer</a>
             </nav>
         </div>
     </header>
