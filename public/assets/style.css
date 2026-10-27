@@ -7,6 +7,7 @@
    4. Composants           8. Pages de création       12. Dashboard (/dashboard)
                                                       13. Création de tournoi (/tournoi/creer)
                                                       14. Modifier / supprimer (CRUD, back-office)
+                                                      15. Jouer un tournoi (/play/tournament)
 
    Chaque section contient ses propres règles responsive à sa fin,
    pour qu'on n'ait jamais à chercher une même règle à deux endroits.
@@ -4447,4 +4448,237 @@ details>summary {
 
 .dash-flash--pending {
     background: var(--lemon);
+}
+
+/* ==========================================================================
+   15. Jouer un tournoi (/play/tournament)
+   Même structure que la page duel ; le panneau « Ton tableau » reprend
+   celui de la création de tournoi (.tour-preview, .tour-slot).
+   ========================================================================== */
+
+.tour-play__stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+/* --- Panneau « Ton tableau » ------------------------------------------------ */
+
+.tour-play__bracket {
+    position: static;
+    /* dans la colonne latérale, pas besoin de rester collé */
+}
+
+.tour-play__bracket .tour-slot__name {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+}
+
+.tour-play__bracket .tour-slot__name small {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4B4B4B;
+}
+
+.tour-slot__vs {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.tour-slot__tbd {
+    color: #4B4B4B;
+}
+
+/* match en cours : jaune, comme un duel choisi à la création */
+.tour-slot.is-current {
+    border-style: solid;
+    background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+}
+
+.tour-slot.is-current .tour-slot__seed {
+    background: var(--ink);
+    color: var(--white);
+}
+
+.tour-slot.is-current small {
+    color: var(--ink);
+}
+
+/* la finale jouée reste jaune : c'est le champion, le résultat à mettre en avant */
+.tour-slot--final.is-filled {
+    background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+}
+
+/* sur le fond jaune de la carte champion, le kbd du bouton noir reste lisible */
+.tour-champion .btn--dark kbd {
+    background: var(--white);
+}
+
+/* --- Résultat --------------------------------------------------------------- */
+
+#resultat:focus {
+    outline: none;
+    /* focus placé par script (lecteurs d'écran), pas par l'utilisateur */
+}
+
+/* --- Champion ----------------------------------------------------------------- */
+
+.tour-champion {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px;
+    background: var(--yellow);
+}
+
+.tour-champion__pill {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--ink);
+    color: var(--white);
+}
+
+.tour-champion__body {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 24px;
+    align-items: center;
+}
+
+.tour-champion__img {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border: var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    background: var(--white);
+}
+
+.tour-champion__text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tour-champion__name {
+    font-size: clamp(28px, 4vw, 44px);
+}
+
+.tour-champion__final {
+    font-size: 16px;
+}
+
+.tour-champion__share {
+    padding: 12px 16px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--white);
+    font-size: 16px;
+}
+
+.tour-champion__share strong {
+    font-size: 22px;
+}
+
+.tour-champion__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+}
+
+.tour-champion__hint {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+
+    /* le tableau passe sous le match, comme « Ta session » sur la page duel */
+    .duel-layout:has(.tour-play__bracket) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .tour-champion {
+        padding: 20px;
+    }
+
+    .tour-champion__body {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        text-align: center;
+    }
+
+    .tour-champion__img {
+        width: 160px;
+        height: 160px;
+    }
+
+    .tour-champion__actions .btn {
+        width: 100%;
+    }
+}
+
+/* --- Confettis (écran du champion, confetti.js) -------------------------------- */
+
+.confetti {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    overflow: hidden;
+    pointer-events: none;
+    /* ne bloque aucun clic */
+}
+
+.confetti__piece {
+    position: absolute;
+    top: -24px;
+    width: 10px;
+    height: 16px;
+    border: 2px solid var(--ink);
+    /* le contour noir de la charte néo-brutaliste */
+    border-radius: 2px;
+    animation-name: confetti-fall;
+    animation-timing-function: cubic-bezier(.25, .6, .5, 1);
+    animation-fill-mode: forwards;
+}
+
+.confetti__piece--round {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translate(0, 0) rotate(0);
+        opacity: 1;
+    }
+
+    85% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--drift), 105vh) rotate(var(--spin));
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confetti {
+        display: none;
+    }
 }

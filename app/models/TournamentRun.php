@@ -2,7 +2,24 @@
 
 class TournamentRun
 {
-    private const SLOTS = ['Q1', 'Q2', 'Q3', 'Q4', 'D1', 'D2', 'F'];
+    public const SLOTS = ['Q1', 'Q2', 'Q3', 'Q4', 'D1', 'D2', 'F'];
+
+    /** Libellés affichés : les codes Q1, D2, F restent internes (URL, base). */
+    public const SLOT_LABELS = [
+        'Q1' => 'Quart de finale 1 sur 4',
+        'Q2' => 'Quart de finale 2 sur 4',
+        'Q3' => 'Quart de finale 3 sur 4',
+        'Q4' => 'Quart de finale 4 sur 4',
+        'D1' => 'Demi-finale 1 sur 2',
+        'D2' => 'Demi-finale 2 sur 2',
+        'F'  => 'Finale',
+    ];
+
+    /** Où file le vainqueur de chaque match (phrase du résultat). */
+    public const NEXT_ROUND = [
+        'Q1' => 'en demi-finale', 'Q2' => 'en demi-finale', 'Q3' => 'en demi-finale', 'Q4' => 'en demi-finale',
+        'D1' => 'en finale', 'D2' => 'en finale',
+    ];
 
     public function __construct(private PDO $db) {}
 
@@ -246,57 +263,90 @@ class TournamentRun
         return $counts;
     }
 
-    /** Récapitulatif des huit plats et de leurs points dans ce run terminé. */
-    public function recap(int $runId, int $userId): array
+    /**
+     * Nom du tournoi, catégorie de ses plats (image et couleur par défaut)
+     * et sa place parmi les tournois du jour (« Tournoi 1 sur 3 »).
+     */
+    public function info(int $tournamentId): array
     {
-        $run = $this->ownedRun($runId, $userId);
+        $stmt = $this->db->prepare("
+            SELECT t.id, t.name,
+                   (SELECT c.slug
+                    FROM battles q
+                    JOIN dish_categories dc ON dc.dish_id = q.dish_1_id
+                    JOIN categories c ON c.id = dc.category_id
+                    WHERE q.tournament_id = t.id
+                    ORDER BY q.position, c.id
+                    LIMIT 1) AS category
+            FROM tournaments t
+            WHERE t.id = :id
+        ");
+        $stmt->execute(['id' => $tournamentId]);
+        $info = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['id' => $tournamentId, 'name' => 'Tournoi', 'category' => null];
 
-        if ($run['finished_at'] === null) {
-            throw new DomainException('Le récapitulatif est disponible après la finale.');
+        $daily = array_map('intval', array_column($this->dailyTournaments(), 'id'));
+        $info['position'] = (int) array_search($tournamentId, $daily, true) + 1;
+        $info['daily_total'] = count($daily);
+        return $info;
+    }
+
+    /**
+     * Le tableau du joueur, match par match : les deux plats (dès qu'ils sont connus) et son vainqueur.
+     * Les quarts viennent du tournoi ; les demies et la finale, des vainqueurs qu'il a choisis.
+     * [slot => ['a' => nom|null, 'b' => nom|null, 'winner' => nom|null]]
+     */
+    public function bracket(int $runId, int $tournamentId, int $userId): array
+    {
+        $this->ownedRun($runId, $userId);
+
+        $stmt = $this->db->prepare("
+            SELECT b.position, d1.name AS a, d2.name AS b
+            FROM battles b
+            JOIN dishes d1 ON d1.id = b.dish_1_id
+            JOIN dishes d2 ON d2.id = b.dish_2_id
+            WHERE b.tournament_id = :tournament_id AND b.phase = 'quarter'
+            ORDER BY b.position
+        ");
+        $stmt->execute(['tournament_id' => $tournamentId]);
+        $quarters = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $quarters['Q' . $row['position']] = $row;
         }
 
         $stmt = $this->db->prepare("
-            WITH run AS (
-                SELECT id, tournament_id
-                FROM tournament_runs
-                WHERE id = :run_id AND user_id = :user_id
-            ),
-            entrants AS (
-                SELECT b.dish_1_id AS dish_id
-                FROM battles b
-                JOIN run r ON r.tournament_id = b.tournament_id
-                WHERE b.phase = 'quarter' AND b.position BETWEEN 1 AND 4
-
-                UNION
-
-                SELECT b.dish_2_id AS dish_id
-                FROM battles b
-                JOIN run r ON r.tournament_id = b.tournament_id
-                WHERE b.phase = 'quarter' AND b.position BETWEEN 1 AND 4
-            ),
-            points AS (
-                SELECT m.dish_winner_id AS dish_id, COUNT(*) AS score
-                FROM tournament_run_matches m
-                JOIN run r ON r.id = m.run_id
-                WHERE m.dish_winner_id IS NOT NULL
-                GROUP BY m.dish_winner_id
-            )
-            SELECT d.id, d.name, d.picture, COALESCE(p.score, 0) AS score
-            FROM entrants e
-            JOIN dishes d ON d.id = e.dish_id
-            LEFT JOIN points p ON p.dish_id = d.id
-            ORDER BY score DESC, d.name
+            SELECT m.slot, w.name AS winner
+            FROM tournament_run_matches m
+            LEFT JOIN dishes w ON w.id = m.dish_winner_id
+            WHERE m.run_id = :run_id
         ");
-        $stmt->execute(['run_id' => $runId, 'user_id' => $userId]);
+        $stmt->execute(['run_id' => $runId]);
+        $winners = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'winner', 'slot');
 
-        return array_map(
-            static function (array $row): array {
-                $row['id'] = (int) $row['id'];
-                $row['score'] = (int) $row['score'];
-                return $row;
-            },
-            $stmt->fetchAll(PDO::FETCH_ASSOC)
-        );
+        $feeds = ['D1' => ['Q1', 'Q2'], 'D2' => ['Q3', 'Q4'], 'F' => ['D1', 'D2']];
+        $bracket = [];
+        foreach (self::SLOTS as $slot) {
+            [$a, $b] = isset($feeds[$slot])
+                ? [$winners[$feeds[$slot][0]] ?? null, $winners[$feeds[$slot][1]] ?? null]
+                : [$quarters[$slot]['a'] ?? null, $quarters[$slot]['b'] ?? null];
+            $bracket[$slot] = ['a' => $a, 'b' => $b, 'winner' => $winners[$slot] ?? null];
+        }
+        return $bracket;
+    }
+
+    /**
+     * Combien de joueurs ont couronné le même champion dans ce tournoi (tous les jours confondus).
+     * ['same' => n, 'total' => n] ; total compte la partie du joueur.
+     */
+    public function championShare(int $tournamentId, int $dishId): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) FILTER (WHERE m.dish_winner_id = :dish_id) AS same, COUNT(*) AS total
+            FROM tournament_run_matches m
+            JOIN tournament_runs r ON r.id = m.run_id
+            WHERE r.tournament_id = :tournament_id AND m.slot = 'F'
+        ");
+        $stmt->execute(['dish_id' => $dishId, 'tournament_id' => $tournamentId]);
+        return array_map('intval', $stmt->fetch(PDO::FETCH_ASSOC));
     }
 
     private function resolvePair(int $tournamentId, int $runId, string $slot): array
