@@ -143,3 +143,20 @@ function euro($n)
 {
     return number_format((float)$n, 2, ',', ' ') . ' €';
 }
+
+/** « 2026-10-26 » → « 26 oct. 2026 », sans dépendre de l'extension intl (absente de l'image Docker). */
+function date_fr(?string $date): string
+{
+    if (!$date) {
+        return '';
+    }
+    $months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    $time = strtotime($date);
+    return date('j', $time) . ' ' . $months[(int) date('n', $time) - 1] . ' ' . date('Y', $time);
+}
+
+/** « 1 vote », « 3 votes » ; $plural sert aux pluriels irréguliers. */
+function plural(int $n, string $singular, ?string $plural = null): string
+{
+    return $n . ' ' . ($n > 1 ? ($plural ?? $singular . 's') : $singular);
+}

@@ -6,12 +6,16 @@ require_once __DIR__ . '/functions.php';
 // Avec le front controller, SCRIPT_NAME vaut toujours index.php :
 // on compare donc le chemin de l'URL pour savoir quel lien est actif.
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$navIsLogged = isset($_SESSION['user_id']);
 $navLinks = [
     '/'               => 'Accueil',
-    '/duel'           => 'Duels',
+    /*'/duel'           => 'Duels',*/
     '/classement.php' => 'Classement',
 ];
-$navIsLogged = isset($_SESSION['user_id']);
+// Le dashboard liste les contenus de l'utilisateur : le lien n'apparaît qu'une fois connecté.
+if ($navIsLogged) {
+    $navLinks['/dashboard'] = 'Dashboard';
+}
 $navUsername = $_SESSION['username'] ?? null;
 $navName = $_SESSION['username'] ?? '';
 ?>

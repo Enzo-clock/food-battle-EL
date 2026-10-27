@@ -4,7 +4,8 @@
    1. Tokens               5. Accueil                  9. Pages de contenu
    2. Base                 6. Page duel               10. Dock flottant (connecté)
    3. Layout               7. Connexion / inscription 11. Pages héritées (ancien code)
-   4. Composants           8. Pages de création
+   4. Composants           8. Pages de création       12. Dashboard (/dashboard)
+                                                      13. Création de tournoi (/tournoi/creer)
 
    Chaque section contient ses propres règles responsive à sa fin,
    pour qu'on n'ait jamais à chercher une même règle à deux endroits.
@@ -2034,6 +2035,21 @@ tr:last-child td {
     box-shadow: 0 0 0 5px var(--yellow);
 }
 
+/* choix unique (bouton radio) : rond, avec un point au centre une fois choisi */
+.choice--radio input {
+    border-radius: 50%;
+}
+
+.choice--radio input:checked {
+    background: var(--white);
+    box-shadow: inset 0 0 0 5px var(--white), inset 0 0 0 12px var(--ink);
+}
+
+/* au clavier : on garde le point central en plus de l'anneau de focus */
+.choice--radio input:checked:focus-visible {
+    box-shadow: inset 0 0 0 5px var(--white), inset 0 0 0 12px var(--ink), 0 0 0 5px var(--yellow);
+}
+
 /* case cochée : la carte prend la couleur de la catégorie */
 .choice--peach:has(input:checked) {
     background: var(--peach);
@@ -2816,5 +2832,1068 @@ details>summary {
 @media (max-width: 700px) {
     .detail {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   12. Dashboard (/dashboard)
+   Les ressources créées par l'utilisateur, un onglet par type.
+   Onglets = liens (?onglet=…) : la page marche sans JavaScript et l'onglet est partageable.
+   ========================================================================== */
+
+.dash {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.dash__head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.dash__title {
+    font-size: clamp(40px, 6vw, 64px);
+}
+
+.dash__lead {
+    max-width: 62ch;
+    font-size: 17px;
+}
+
+/* --- Onglets ---------------------------------------------------------------- */
+
+.dash-tabs {
+    position: relative;
+    /* référence de offsetLeft pour recentrer l'onglet actif (vue dashboard) */
+    display: flex;
+    gap: 12px;
+    /* une seule ligne : défile horizontalement si l'écran est trop étroit */
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    /* place pour l'ombre et l'anneau de focus, coupés sinon par le défilement */
+    padding: 6px 10px 12px 6px;
+    margin: -6px -10px -12px -6px;
+}
+
+.dash-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.dash-tab {
+    flex: none;
+    scroll-snap-align: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    padding: 0 14px 0 18px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+    font-size: 18px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+
+.dash-tab:hover {
+    transform: translate(-2px, -2px);
+}
+
+/* onglet actif : même code que le bouton sombre (fond encre, ombre orange) */
+.dash-tab[aria-current="page"] {
+    background: var(--ink);
+    color: var(--white);
+    box-shadow: 3px 3px 0 var(--orange);
+    transform: none;
+}
+
+.dash-tab__count {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--yellow);
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+/* --- Panneau ---------------------------------------------------------------- */
+
+.dash-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 28px;
+    min-height: 360px;
+}
+
+.dash-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: var(--border);
+}
+
+.dash-panel__title {
+    font-size: clamp(24px, 3vw, 30px);
+    text-transform: uppercase;
+}
+
+.dash-panel__sub {
+    margin-top: 4px;
+    color: #4B4B4B;
+    font-weight: 600;
+}
+
+.dash-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 16px;
+}
+
+/* carte d'une ressource : fond crème pour se détacher du panneau blanc */
+.dash-item,
+.dash-duel {
+    border: var(--border);
+    border-radius: 16px;
+    background: var(--cream);
+    box-shadow: var(--shadow-sm);
+}
+
+.dash-item__title {
+    font-size: 19px;
+    overflow-wrap: anywhere;
+}
+
+.dash-item__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+}
+
+.dash-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font-size: 14px;
+}
+
+.dash-meta .tag {
+    font-size: 12px;
+}
+
+.dash-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.dash-stat strong {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.dash-stat span {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* --- Ligne générique (plats, restaurants, catégories) ----------------------- */
+
+.dash-row {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 20px;
+    padding: 16px;
+}
+
+.dash-row__thumb {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    background: var(--white);
+}
+
+.dash-row__thumb--icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dash-row__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.dash-row__place {
+    color: #4B4B4B;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dash-row__desc {
+    font-size: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.dash-row__chip {
+    font-size: 17px;
+    font-weight: 800;
+    padding: 4px 16px;
+}
+
+.dash-row__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    text-align: right;
+}
+
+.dash-row__price {
+    font-size: 22px;
+    font-weight: 800;
+}
+
+/* « encore 1 plat pour les duels » : contour pointillé = pas encore prêt */
+.dash-status {
+    padding: 2px 10px;
+    border: 2px dashed var(--ink);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dash-status--ok {
+    border-style: solid;
+    background: var(--mint);
+}
+
+/* --- Duel ------------------------------------------------------------------- */
+
+.dash-duel {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+}
+
+.dash-duel__match {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.dash-duel__side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    background: var(--white);
+}
+
+/* A à gauche (teal), B en miroir à droite (orange) : mêmes repères que la page duel */
+.dash-duel__side--a {
+    border-left: 8px solid var(--teal);
+}
+
+.dash-duel__side--b {
+    flex-direction: row-reverse;
+    text-align: right;
+    border-right: 8px solid var(--orange);
+}
+
+.dash-duel__side--a.is-leading {
+    background: var(--mint);
+}
+
+.dash-duel__side--b.is-leading {
+    background: var(--peach);
+}
+
+.dash-duel__img {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+
+.dash-duel__dish {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.dash-duel__dish strong {
+    overflow-wrap: anywhere;
+}
+
+.dash-duel__dish small {
+    color: #4B4B4B;
+    font-weight: 600;
+}
+
+.dash-duel__pct {
+    margin-left: auto;
+    font-size: 20px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.dash-duel__side--b .dash-duel__pct {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.dash-duel__vs {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+    font-weight: 800;
+}
+
+/* barre de répartition des votes A / B */
+.dash-split {
+    display: flex;
+    height: 14px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--orange);
+}
+
+.dash-split__a {
+    background: var(--teal);
+    border-right: 2px solid var(--ink);
+}
+
+.dash-split__b {
+    flex: 1;
+}
+
+/* --- Tournoi ---------------------------------------------------------------- */
+
+.dash-tournament {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.dash-tournament__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.dash-tournament__head .dash-meta {
+    margin-top: 8px;
+}
+
+.dash-bracket {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.dash-bracket li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    background: var(--white);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dash-bracket li span:not(.dash-bracket__vs) {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.dash-bracket li span:last-child {
+    text-align: right;
+}
+
+.dash-bracket__vs {
+    flex: none;
+    padding: 0 6px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--yellow);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.dash-progress {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dash-progress__track {
+    width: 200px;
+    height: 12px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    overflow: hidden;
+}
+
+.dash-progress__fill {
+    display: block;
+    height: 100%;
+    background: var(--teal);
+}
+
+.dash-winner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+/* --- État vide -------------------------------------------------------------- */
+
+.dash-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: auto 0;
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.dash-empty__icon {
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--lilac);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 6px;
+}
+
+.dash-empty__title {
+    font-size: 22px;
+}
+
+.dash-empty__text {
+    max-width: 46ch;
+    color: #4B4B4B;
+    margin-bottom: 8px;
+}
+
+/* --- Responsive ------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+    .dash {
+        gap: 22px;
+    }
+
+    .dash-tab {
+        min-height: 48px;
+        font-size: 15px;
+        padding: 0 10px 0 14px;
+        gap: 8px;
+    }
+
+    .dash-tab__count {
+        min-width: 26px;
+        height: 26px;
+        font-size: 13px;
+    }
+
+    .dash-panel {
+        padding: 18px;
+        min-height: 0;
+    }
+
+    .dash-panel__head .btn {
+        width: 100%;
+    }
+
+    /* vignette + texte, puis les chiffres et l'action sur leur propre ligne */
+    .dash-row {
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 12px 14px;
+        padding: 14px;
+    }
+
+    .dash-row__thumb {
+        width: 64px;
+        height: 64px;
+    }
+
+    .dash-row__aside {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 10px;
+        border-top: 2px dashed var(--ink);
+        text-align: left;
+    }
+
+    .dash-stat {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .dash-stat strong {
+        font-size: 20px;
+    }
+
+    /* les deux plats l'un sous l'autre, le VS entre les deux */
+    .dash-duel__match {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+
+    .dash-duel__vs {
+        width: 40px;
+        height: 40px;
+        margin: -6px auto;
+        position: relative;
+        z-index: 1;
+        font-size: 14px;
+    }
+
+    .dash-duel__side--b {
+        flex-direction: row;
+        text-align: left;
+        border-right-width: 2px;
+        border-left: 8px solid var(--orange);
+    }
+
+    .dash-duel__side--b .dash-duel__pct {
+        margin-left: auto;
+        margin-right: 0;
+    }
+
+    .dash-duel__img {
+        width: 52px;
+        height: 52px;
+    }
+
+    .dash-bracket {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dash-tournament__head .dash-stat {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .dash-progress__track {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-tab:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   13. Création de tournoi (/tournoi/creer)
+   Étapes à gauche, aperçu du tableau à droite (collant sur grand écran).
+   Les cartes de duel reprennent les repères de la page duel : A teal, B orange, VS jaune.
+   ========================================================================== */
+
+/* les pages de création à deux colonnes ont besoin de plus de largeur */
+.create-page--wide {
+    max-width: var(--container);
+}
+
+.tour-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
+    align-items: start;
+}
+
+.tour-steps {
+    gap: 32px;
+}
+
+.tour-step {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* un séparateur entre les étapes, comme entre les groupes du formulaire de plat */
+.tour-step + .tour-step {
+    padding-top: 28px;
+    border-top: 2px solid #EDE6D6;
+}
+
+.tour-step__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.tour-step__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 22px;
+}
+
+.tour-step__num {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--yellow);
+    box-shadow: var(--shadow-sm);
+    font-size: 17px;
+}
+
+.tour-step__status {
+    padding: 4px 14px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.tour-step__status.is-complete {
+    background: var(--mint);
+}
+
+.tour-step__status.is-error {
+    background: var(--pink);
+}
+
+/* --- Étape 1 : catégories -------------------------------------------------- */
+
+.tour-cats {
+    margin: 0;
+}
+
+.tour-cats .chip {
+    gap: 10px;
+}
+
+.tour-cats__count {
+    padding: 0 8px;
+    border: 2px solid currentColor;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* --- Étape 2 : duels ------------------------------------------------------- */
+
+.tour-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    padding: 14px 18px;
+    border: 2px dashed var(--ink);
+    border-radius: 14px;
+    background: var(--lemon);
+}
+
+.tour-duels {
+    margin: 0;
+    padding: 4px 6px 6px 4px;
+    /* place pour l'ombre et le décalage des cartes choisies */
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.tour-duel {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: var(--border);
+    border-radius: 16px;
+    background: var(--cream);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: transform .08s ease, box-shadow .08s ease, opacity .12s ease;
+}
+
+.tour-duel:hover {
+    transform: translate(-2px, -2px);
+}
+
+/* la case reste dans le DOM (clavier, lecteurs d'écran) mais c'est la carte qui se voit */
+.tour-duel__input {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 26px;
+    height: 26px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: var(--border);
+    border-radius: 8px;
+    background: var(--white);
+    appearance: none;
+    cursor: pointer;
+}
+
+.tour-duel__input:checked {
+    background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") no-repeat center / 16px;
+}
+
+.tour-duel:has(.tour-duel__input:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px var(--yellow);
+}
+
+/* duel choisi : fond jaune, soulevé, numéro de quart */
+.tour-duel.is-picked {
+    background: var(--yellow);
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow);
+}
+
+.tour-duel__seed:empty {
+    display: none;
+}
+
+.tour-duel__seed {
+    position: absolute;
+    top: -14px;
+    left: 14px;
+    padding: 2px 12px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--ink);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+/* duel impossible (plat déjà pris, ou tableau complet) */
+.tour-duel.is-conflict,
+.tour-duel.is-full {
+    opacity: .45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.tour-duel.is-conflict .tour-duel__dish img,
+.tour-duel.is-full .tour-duel__dish img {
+    filter: grayscale(.8);
+}
+
+.tour-duel__conflict {
+    display: none;
+    font-weight: 700;
+}
+
+.tour-duel.is-conflict .tour-duel__conflict {
+    display: inline;
+}
+
+.tour-duel__match {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-right: 34px;
+    /* laisse la place à la case à cocher */
+}
+
+.tour-duel__dish {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    background: var(--white);
+}
+
+.tour-duel__dish--a {
+    border-left: 8px solid var(--teal);
+}
+
+.tour-duel__dish--b {
+    border-left: 8px solid var(--orange);
+}
+
+.tour-duel__dish img {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--white);
+}
+
+.tour-duel__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.tour-duel__text strong {
+    overflow-wrap: anywhere;
+}
+
+.tour-duel__text small {
+    color: #4B4B4B;
+    font-weight: 600;
+}
+
+.tour-duel__vs {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
+    margin: -8px 0 -8px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--yellow);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.tour-duel.is-picked .tour-duel__vs {
+    background: var(--white);
+}
+
+.tour-duel__foot {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* --- Étape 3 : nom et date -------------------------------------------------- */
+
+.tour-info {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+/* --- Aperçu du tableau ------------------------------------------------------ */
+
+.tour-preview {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--lilac);
+}
+
+.tour-preview__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    font-size: 22px;
+    text-transform: uppercase;
+}
+
+.tour-preview__round {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.tour-bracket {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tour-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 12px 6px 6px;
+    border: 2px dashed var(--ink);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .5);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tour-slot.is-filled {
+    border-style: solid;
+    background: var(--white);
+    font-weight: 700;
+}
+
+.tour-slot--next {
+    color: #4B4B4B;
+}
+
+.tour-slot--final {
+    border-style: solid;
+    background: var(--yellow);
+}
+
+.tour-slot__seed {
+    flex: none;
+    min-width: 32px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.tour-slot.is-filled .tour-slot__seed {
+    background: var(--ink);
+    color: var(--white);
+}
+
+.tour-slot__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+}
+
+.tour-preview__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 16px;
+    border-top: 2px solid var(--ink);
+}
+
+/* --- Responsive ------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+
+    /* l'aperçu passe sous les étapes : on garde le bouton à la fin du parcours */
+    .tour-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tour-preview {
+        position: static;
+    }
+}
+
+@media (max-width: 700px) {
+    .tour-duels,
+    .tour-info {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tour-step__title {
+        font-size: 19px;
+    }
+
+    .tour-step__num {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-duel:hover,
+    .tour-duel.is-picked {
+        transform: none;
     }
 }

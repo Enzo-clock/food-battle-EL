@@ -49,6 +49,42 @@ class Tournament
     }
 
     /**
+     * Duels libres de l'utilisateur, utilisables comme quarts de finale.
+     * Pour chaque duel : les deux plats (photo, restaurant), les votes reçus
+     * et les catégories communes aux deux plats (« shared », liste de slugs).
+     */
+    public function availableBattles(int $userId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT b.id,
+                    d1.id AS a_id, d1.name AS a_name, d1.picture AS a_picture, e1.name AS a_restaurant,
+                    d2.id AS b_id, d2.name AS b_name, d2.picture AS b_picture, e2.name AS b_restaurant,
+                    (SELECT COUNT(*) FROM user_battle_votes v WHERE v.battle_id = b.id) AS votes,
+                    COALESCE((
+                        SELECT json_agg(c.slug ORDER BY c.id)
+                        FROM dish_categories x
+                        JOIN dish_categories y ON y.category_id = x.category_id AND y.dish_id = b.dish_2_id
+                        JOIN categories c ON c.id = x.category_id
+                        WHERE x.dish_id = b.dish_1_id
+                    ), '[]')::text AS shared
+             FROM battles b
+             JOIN dishes d1 ON d1.id = b.dish_1_id
+             JOIN dishes d2 ON d2.id = b.dish_2_id
+             LEFT JOIN establishments e1 ON e1.id = d1.establishment_id
+             LEFT JOIN establishments e2 ON e2.id = d2.establishment_id
+             WHERE b.creator_id = :user AND b.tournament_id IS NULL
+             ORDER BY b.id DESC"
+        );
+        $stmt->execute(['user' => $userId]);
+
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['shared'] = json_decode($row['shared'], true) ?: [];
+        }
+        return $rows;
+    }
+
+    /**
      * Crée un tournoi et ses quatre battles de quart de finale.
      * Les identifiants de battles sont traités dans l'ordre reçu.
      */
@@ -56,7 +92,7 @@ class Tournament
         string $name,
         string $startDate,
         int $creatorId,
-        string $category,
+        string $category, // slug de la catégorie (ex. « burger »)
         array $battleIds
     ): int {
         $battleIds = array_map('intval', $battleIds);
@@ -65,7 +101,7 @@ class Tournament
             count($battleIds) !== 4
             || count(array_unique($battleIds)) !== 4
         ) {
-            throw new InvalidArgumentException('Il faut quatre battles différentes.');
+            throw new InvalidArgumentException('Il faut quatre duels différents.');
         }
 
         $start = DateTimeImmutable::createFromFormat('!Y-m-d', $startDate);
@@ -93,13 +129,13 @@ class Tournament
                       SELECT 1
                       FROM dish_categories dc
                       JOIN categories c ON c.id = dc.category_id
-                      WHERE dc.dish_id = d1.id AND c.name = ?
+                      WHERE dc.dish_id = d1.id AND c.slug = ?
                   )
                   AND EXISTS (
                       SELECT 1
                       FROM dish_categories dc
                       JOIN categories c ON c.id = dc.category_id
-                      WHERE dc.dish_id = d2.id AND c.name = ?
+                      WHERE dc.dish_id = d2.id AND c.slug = ?
                   )
                 FOR UPDATE OF b
             ");
@@ -120,7 +156,7 @@ class Tournament
 
             if (count($battlesById) !== 4) {
                 throw new InvalidArgumentException(
-                    'Un battle n’est plus disponible ou ne correspond pas à la catégorie.'
+                    'Un des duels choisis n’est plus disponible ou n’est pas de cette catégorie.'
                 );
             }
             $dishIds = [];
@@ -132,7 +168,7 @@ class Tournament
 
             if (count(array_unique($dishIds)) !== 8) {
                 throw new InvalidArgumentException(
-                    'Un même plat ne peut pas apparaître dans plusieurs battles du tournoi.'
+                    'Un même plat ne peut pas apparaître dans plusieurs duels du tournoi.'
                 );
             }
 
