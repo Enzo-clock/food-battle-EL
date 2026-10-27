@@ -1,8 +1,32 @@
 <?php
+/**
+ * Variables fournies par la vue qui inclut ce partial.
+ *
+ * @var array<int, array<string, mixed>> $duel
+ * @var array<string, mixed>|null $result
+ * @var bool $isLogged
+ * @var string|null $category
+ * @var string|null $voteAction
+ * @var array<string, mixed>|null $voteFields
+ */
 // filepath: foodbattle-starter/app/views/partials/battle.php
 // Carte de duel réutilisable (duel libre, et plus tard matchs de tournoi).
 // Attend : $duel = [platA, platB], $category, $isLogged, $result (null avant le vote).
-$tone = categories()[$category]['tone'] ?? 'white';
+$category = $category ?? null;
+$tone = $category !== null
+    ? (categories()[$category]['tone'] ?? 'white')
+    : 'white';
+
+$defaultPicture = $category !== null
+    ? image_for($category)
+    : '/assets/images/placeholder.svg';
+
+$voteAction = $voteAction ?? '/duel/vote';
+$voteFields = $voteFields ?? [
+    'categorie' => $category,
+    'a' => $duel[0]['id'],
+    'b' => $duel[1]['id'],
+];
 ?>
 <div class="battle<?= $result ? ' battle--done' : '' ?>">
     <?php foreach ($duel as $i => $dish): ?>
@@ -15,7 +39,7 @@ $tone = categories()[$category]['tone'] ?? 'white';
         ?>
         <article class="<?= $classes ?>">
             <span class="battle__letter" aria-hidden="true"><?= $letter ?></span>
-            <img class="battle__img tone-<?= h($tone) ?>" src="<?= h($dish['picture'] ?: image_for($category)) ?>" alt=""
+            <img class="battle__img tone-<?= h($tone) ?>" src="<?= h($dish['picture'] ?: $defaultPicture) ?>" alt=""
                 width="400" height="300" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'">
             <div class="battle__body">
                 <h2 class="battle__name"><?= h($dish['name']) ?></h2>
@@ -25,17 +49,24 @@ $tone = categories()[$category]['tone'] ?? 'white';
                 <?php endif ?>
                 <p class="battle__meta">
                     <strong><?= $dish['price'] !== null ? euro($dish['price']) : 'Prix non renseigné' ?></strong>
-                    <span><?= (int) $dish['votes'] ?> vote<?= $dish['votes'] > 1 ? 's' : '' ?> gagné<?= $dish['votes'] > 1 ? 's' : '' ?> en duel</span>
+                    <?php if (isset($dish['votes'])): ?>
+                        <span>
+                            <?= (int) $dish['votes'] ?> vote<?= $dish['votes'] > 1 ? 's' : '' ?>
+                            gagné<?= $dish['votes'] > 1 ? 's' : '' ?> en duel
+                        </span>
+                    <?php endif ?>
                 </p>
 
                 <?php if ($result): ?>
                     <p class="battle__state"><?= $isPick ? 'Ton choix' : '&nbsp;' ?></p>
                 <?php elseif ($isLogged): ?>
-                    <form method="post" action="/duel/vote">
+                    <form method="post" action="<?= h($voteAction) ?>">
                         <input type="hidden" name="token" value="<?= h(csrf()) ?>">
-                        <input type="hidden" name="categorie" value="<?= h($category) ?>">
-                        <input type="hidden" name="a" value="<?= (int) $duel[0]['id'] ?>">
-                        <input type="hidden" name="b" value="<?= (int) $duel[1]['id'] ?>">
+
+                        <?php foreach ($voteFields as $name => $value): ?>
+                            <input type="hidden" name="<?= h($name) ?>" value="<?= h($value) ?>">
+                        <?php endforeach ?>
+
                         <input type="hidden" name="choice" value="<?= (int) $dish['id'] ?>">
                         <button class="btn btn--block battle__vote" type="submit" data-duel-pick="<?= $side ?>"
                             aria-label="Voter pour <?= h($dish['name']) ?>">

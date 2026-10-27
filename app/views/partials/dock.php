@@ -65,14 +65,14 @@ $dockGroups = [
                 <li>
                     <?php if ($item['href'] !== null): ?>
                         <a class="<?= $classes ?>" href="<?= h($item['href']) ?>" <?= $isCurrent ? 'aria-current="page"' : '' ?>>
-                    <?php else: ?>
-                        <span class="<?= $classes ?> is-disabled" aria-disabled="true">
-                    <?php endif ?>
+                        <?php else: ?>
+                            <span class="<?= $classes ?> is-disabled" aria-disabled="true">
+                            <?php endif ?>
                             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2"
                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $item['icon'] ?></svg>
                             <span class="dock__label"><?= h($item['label']) ?><?= $item['href'] === null ? ' · bientôt' : '' ?></span>
                             <span class="dock__short" aria-hidden="true"><?= h($item['short']) ?></span>
-                    <?php if ($item['href'] !== null): ?>
+                            <?php if ($item['href'] !== null): ?>
                         </a>
                     <?php else: ?>
                         </span>
