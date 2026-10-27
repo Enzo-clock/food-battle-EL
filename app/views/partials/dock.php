@@ -45,7 +45,8 @@ $dockGroups = [
         ],
         [
             'href'  => '/categorie/creer',
-            'label' => 'Ajouter une catégorie',
+            // un utilisateur propose (validation par un admin), un admin crée directement
+            'label' => is_admin() ? 'Ajouter une catégorie' : 'Proposer une catégorie',
             'short' => '+ Catégorie',
             // étiquette : une catégorie
             'icon'  => '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><path d="M7.5 7.5h.01"/>',

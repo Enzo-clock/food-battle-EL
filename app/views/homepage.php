@@ -17,7 +17,7 @@ if (!array_key_exists($cat, $categories)) {
 
 $stats = $db->query(
     'SELECT
-        (SELECT COUNT(*) FROM dishes) AS dishes,
+        (SELECT COUNT(*) FROM active_dishes) AS dishes,
         (SELECT COUNT(*) FROM establishments) AS establishments,
         (SELECT COUNT(*) FROM categories) AS categories'
 )->fetch();
@@ -29,7 +29,7 @@ $sql = "
         e.city,
         cat_data.primary_category,
         cat_data.categories_json
-    FROM dishes d
+    FROM active_dishes d -- plats archivés exclus
     LEFT JOIN establishments e ON e.id = d.establishment_id
     LEFT JOIN LATERAL (
         SELECT

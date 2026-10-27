@@ -63,3 +63,31 @@ function delete_uploaded_picture(?string $publicPath): void
         @unlink(dirname(__DIR__, 2) . '/public' . $publicPath);
     }
 }
+
+/**
+ * Copie une image déjà enregistrée sous un nouveau nom (ex. « Dupliquer un plat ») :
+ * chaque plat a son propre fichier, supprimer l'un ne casse jamais la photo de l'autre.
+ * Une image externe (URL) est simplement réutilisée. Retourne le nouveau chemin public, ou null.
+ */
+function copy_uploaded_picture(?string $publicPath, string $folder): ?string
+{
+    if ($publicPath === null || $publicPath === '') {
+        return null;
+    }
+    if (!str_starts_with($publicPath, '/uploads/')) {
+        return $publicPath;
+    }
+
+    $source = dirname(__DIR__, 2) . '/public' . $publicPath;
+    if (!is_file($source)) {
+        return null;
+    }
+
+    $directory = dirname(__DIR__, 2) . '/public/uploads/' . $folder;
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        return null;
+    }
+
+    $filename = bin2hex(random_bytes(16)) . '.' . pathinfo($source, PATHINFO_EXTENSION);
+    return copy($source, $directory . '/' . $filename) ? '/uploads/' . $folder . '/' . $filename : null;
+}

@@ -6,6 +6,58 @@ require_once __DIR__ . '/../app/includes/functions.php';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// Tout ce qui est sous /admin est réservé aux administrateurs.
+// Une seule vérification ici, avant toute route : une nouvelle page admin est protégée d'office.
+if ($path === '/admin' || str_starts_with($path, '/admin/')) {
+    require_login();
+    if (!is_admin()) {
+        abort_page(403);
+    }
+}
+
+// Modifier, supprimer, restaurer : /plat/12/modifier, /duel/5/supprimer, /plat/12/restaurer…
+// Le contrôleur vérifie ensuite que l'utilisateur est le créateur de la ressource, ou admin.
+$manageRoutes = [
+    'plat'       => ['DishController', ['modifier' => 'edit', 'supprimer' => 'delete', 'restaurer' => 'restore']],
+    'restaurant' => ['EstablishmentController', ['modifier' => 'edit', 'supprimer' => 'delete']],
+    'categorie'  => ['CategoryController', ['modifier' => 'edit', 'supprimer' => 'delete']],
+    'duel'       => ['BattleCreationController', ['supprimer' => 'delete']],
+    'tournoi'    => ['TournamentCreationController', ['modifier' => 'edit', 'supprimer' => 'delete']],
+];
+if (preg_match('#^/([a-z]+)/(\d+)/([a-z]+)$#', $path, $m) && isset($manageRoutes[$m[1]][1][$m[3]])) {
+    [$controller, $actions] = $manageRoutes[$m[1]];
+    $action = $actions[$m[3]];
+    // restaurer agit tout de suite (POST seul) ; modifier et supprimer ont un écran (GET) puis l'action (POST)
+    $allowed = $action === 'restore' ? ['POST'] : ['GET', 'POST'];
+    if (!in_array($method, $allowed, true)) {
+        http_response_code(405);
+        exit('Méthode non autorisée');
+    }
+    require_once __DIR__ . '/../app/controllers/' . $controller . '.php';
+    (new $controller($db))->$action((int) $m[2]);
+    exit;
+}
+
+if ($path === '/admin' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/AdminController.php';
+    (new AdminController($db))->index();
+    exit;
+}
+
+// Modération des catégories proposées par les utilisateurs
+if (preg_match('#^/admin/categories/(\d+)/(valider|refuser)$#', $path, $m) && $method === 'POST') {
+    require_once __DIR__ . '/../app/controllers/AdminController.php';
+    $action = $m[2] === 'valider' ? 'approveCategory' : 'rejectCategory';
+    (new AdminController($db))->$action((int) $m[1]);
+    exit;
+}
+
+if (preg_match('#^/admin/utilisateurs/(\d+)/role$#', $path, $m) && $method === 'POST') {
+    require_once __DIR__ . '/../app/controllers/AdminController.php';
+    (new AdminController($db))->setRole((int) $m[1]);
+    exit;
+}
+
 if ($path === '/') {
     require_once __DIR__ . '/../app/controllers/HomeController.php';
     (new HomeController())->index();
@@ -91,5 +143,4 @@ if ($path === '/tournoi/creer' && in_array($method, ['GET', 'POST'], true)) {
     exit;
 }
 
-http_response_code(404);
-echo 'Page introuvable';
+abort_page(404);

@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/../models/Battle.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/manage.php';
 
 class BattleCreationController
 {
@@ -45,7 +46,7 @@ class BattleCreationController
                 e.city,
                 cat_data.primary_category,
                 cat_data.categories_json
-            FROM dishes d
+            FROM active_dishes d -- plats archivés exclus
             LEFT JOIN establishments e ON e.id = d.establishment_id
             LEFT JOIN LATERAL (
                 SELECT
@@ -141,5 +142,18 @@ class BattleCreationController
 
         $title = 'Créer un duel';
         require __DIR__ . '/../views/createbattle.php';
+    }
+
+    /**
+     * GET (confirmation) / POST /duel/{id}/supprimer.
+     * Un duel n'a rien de modifiable : changer un de ses plats invaliderait les votes.
+     * Suppression seulement sans vote : un duel libre est partagé par tous les joueurs du mode aléatoire.
+     */
+    public function delete(int $id): void
+    {
+        $battles = new Battle($this->db);
+        $duel = load_managed($battles->findFree($id));
+
+        handle_deletion('duel', $duel, $duel['a_name'] . ' vs ' . $duel['b_name'], static fn(): bool => $battles->deleteFree($id));
     }
 }

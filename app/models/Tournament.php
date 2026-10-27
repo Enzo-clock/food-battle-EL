@@ -68,8 +68,8 @@ class Tournament
                         WHERE x.dish_id = b.dish_1_id
                     ), '[]')::text AS shared
              FROM battles b
-             JOIN dishes d1 ON d1.id = b.dish_1_id
-             JOIN dishes d2 ON d2.id = b.dish_2_id
+             JOIN active_dishes d1 ON d1.id = b.dish_1_id -- un duel avec un plat archivé
+             JOIN active_dishes d2 ON d2.id = b.dish_2_id -- ne peut plus ouvrir un tournoi
              LEFT JOIN establishments e1 ON e1.id = d1.establishment_id
              LEFT JOIN establishments e2 ON e2.id = d2.establishment_id
              WHERE b.creator_id = :user AND b.tournament_id IS NULL
@@ -120,8 +120,8 @@ class Tournament
             $stmt = $this->db->prepare("
                 SELECT b.id, b.dish_1_id, b.dish_2_id
                 FROM battles b
-                JOIN dishes d1 ON d1.id = b.dish_1_id
-                JOIN dishes d2 ON d2.id = b.dish_2_id
+                JOIN active_dishes d1 ON d1.id = b.dish_1_id
+                JOIN active_dishes d2 ON d2.id = b.dish_2_id
                 WHERE b.id IN ($placeholders)
                   AND b.creator_id = ?
                   AND b.tournament_id IS NULL
@@ -222,5 +222,64 @@ class Tournament
 
             throw $error;
         }
+    }
+
+    /** Un tournoi avec ses votes (tous matchs confondus). */
+    public function findWithStats(int $id): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT t.*,
+                    (SELECT COUNT(*) FROM user_battle_votes v
+                     JOIN battles b ON b.id = v.battle_id
+                     WHERE b.tournament_id = t.id) AS votes
+             FROM tournaments t WHERE t.id = ?'
+        );
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function rename(int $id, string $name): void
+    {
+        $this->db->prepare('UPDATE tournaments SET name = ? WHERE id = ?')->execute([$name, $id]);
+    }
+
+    /**
+     * Déplace un tournoi pas encore commencé : nouvelle date de début, et les quarts suivent
+     * (un par jour). En deux temps, car UNIQUE (tournament_id, battle_date) est vérifié
+     * ligne par ligne : décaler d'un jour ferait sinon entrer un quart sur la date du suivant.
+     */
+    public function reschedule(int $id, string $startDate): void
+    {
+        $this->db->beginTransaction();
+        try {
+            $this->db->prepare('UPDATE tournaments SET start_date = ? WHERE id = ?')->execute([$startDate, $id]);
+            $this->db->prepare("UPDATE battles SET battle_date = battle_date + 100000 WHERE tournament_id = ?")
+                ->execute([$id]);
+            $this->db->prepare(
+                'UPDATE battles SET battle_date = CAST(? AS date) + (position - 1) WHERE tournament_id = ?'
+            )->execute([$startDate, $id]);
+            $this->db->commit();
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Supprime un tournoi pas encore commencé et sans vote ; ses matchs partent avec lui
+     * (battles.tournament_id en CASCADE). Les duels d'origine, copiés à la création, restent.
+     * Les conditions sont dans la requête : retourne false si elles ne sont plus remplies.
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM tournaments t
+             WHERE t.id = ? AND t.start_date > CURRENT_DATE
+               AND NOT EXISTS (SELECT 1 FROM user_battle_votes v
+                               JOIN battles b ON b.id = v.battle_id
+                               WHERE b.tournament_id = t.id)'
+        );
+        $stmt->execute([$id]);
+        return $stmt->rowCount() === 1;
     }
 }

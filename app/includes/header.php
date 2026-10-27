@@ -16,6 +16,10 @@ $navLinks = [
 if ($navIsLogged) {
     $navLinks['/dashboard'] = 'Dashboard';
 }
+// Le back-office n'apparaît qu'aux admins (rôle relu en base, voir is_admin()).
+if (is_admin()) {
+    $navLinks['/admin'] = 'Admin';
+}
 $navUsername = $_SESSION['username'] ?? null;
 $navName = $_SESSION['username'] ?? '';
 ?>

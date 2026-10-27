@@ -45,13 +45,17 @@ function categories(): array
         return $cache;
     }
 
+    // Seules les catégories validées existent pour le site : une proposition en attente
+    // n'apparaît nulle part (filtres, duels, ajout de plat, tournois). Plats archivés non comptés.
     global $db;
     $rows = $db->query(
-        'SELECT c.id, c.slug, c.name, c.color, c.picture, COUNT(dc.dish_id) AS dishes
+        "SELECT c.id, c.slug, c.name, c.color, c.picture, COUNT(dc.dish_id) AS dishes
          FROM categories c
          LEFT JOIN dish_categories dc ON dc.category_id = c.id
+             AND dc.dish_id IN (SELECT id FROM active_dishes)
+         WHERE c.status = 'approved'
          GROUP BY c.id
-         ORDER BY c.id'
+         ORDER BY c.id"
     )->fetchAll();
 
     $cache = [];
@@ -103,13 +107,20 @@ function category_key(string $text): string
     return implode('-', $words);
 }
 
-/** Catégorie existante équivalente au nom saisi (même slug, même nom ou simple pluriel), sinon null. */
+/**
+ * Catégorie équivalente au nom saisi (même slug, même nom ou simple pluriel), sinon null.
+ * Cherche dans TOUTES les catégories, validées, en attente ou refusées :
+ * on ne propose pas deux fois « Vegan », et une catégorie refusée ne revient pas par une autre porte.
+ * Retourne ['id', 'label', 'status', 'reason'].
+ */
 function find_similar_category(string $name): ?array
 {
+    global $db;
     $key = category_key($name);
-    foreach (categories() as $slug => $category) {
-        if ($key === category_key($slug) || $key === category_key($category['label'])) {
-            return $category;
+    $rows = $db->query('SELECT id, slug, name, status, rejection_reason FROM categories')->fetchAll();
+    foreach ($rows as $row) {
+        if ($key === category_key($row['slug']) || $key === category_key($row['name'])) {
+            return ['id' => (int) $row['id'], 'label' => $row['name'], 'status' => $row['status'], 'reason' => $row['rejection_reason']];
         }
     }
     return null;
@@ -160,3 +171,95 @@ function plural(int $n, string $singular, ?string $plural = null): string
 {
     return $n . ' ' . ($n > 1 ? ($plural ?? $singular . 's') : $singular);
 }
+
+/* --------------------------------------------------------------------------
+   Utilisateur courant, rôle et droits
+   -------------------------------------------------------------------------- */
+
+/**
+ * Utilisateur connecté, relu en base une fois par requête.
+ * Le rôle n'est pas pris dans la session : si un admin perd ses droits,
+ * il les perd immédiatement, sans attendre sa déconnexion.
+ */
+function current_user(): ?array
+{
+    static $cache = false;
+    if ($cache !== false) {
+        return $cache;
+    }
+
+    $id = (int) ($_SESSION['user_id'] ?? 0);
+    if ($id <= 0) {
+        return $cache = null;
+    }
+
+    global $db;
+    $stmt = $db->prepare('SELECT id, username, role FROM users WHERE id = ?');
+    $stmt->execute([$id]);
+    return $cache = ($stmt->fetch() ?: null);
+}
+
+function current_user_id(): ?int
+{
+    $user = current_user();
+    return $user ? (int) $user['id'] : null;
+}
+
+function is_admin(): bool
+{
+    return (current_user()['role'] ?? null) === 'admin';
+}
+
+/** Le créateur d'une ressource, ou un admin, peut la modifier et la supprimer. */
+function can_manage(array $row): bool
+{
+    $userId = current_user_id();
+    return $userId !== null && (is_admin() || (int) $row['creator_id'] === $userId);
+}
+
+/** Non connecté → page de connexion. */
+function require_login(): void
+{
+    if (current_user_id() === null) {
+        header('Location: /login', true, 303);
+        exit;
+    }
+}
+
+/** Page « Accès refusé » (403) ou « Introuvable » (404), dans le thème du site. */
+function abort_page(int $code): never
+{
+    http_response_code($code);
+    $title = $code === 403 ? 'Accès refusé' : 'Page introuvable';
+    require __DIR__ . '/../views/pages/error.php';
+    exit;
+}
+
+/* --------------------------------------------------------------------------
+   Messages après redirection (pattern PRG) et retour sûr
+   -------------------------------------------------------------------------- */
+
+function flash_set(string $message, string $type = 'success'): void
+{
+    $_SESSION['flash'] = ['message' => $message, 'type' => $type];
+}
+
+function flash_take(): ?array
+{
+    $flash = $_SESSION['flash'] ?? null;
+    unset($_SESSION['flash']);
+    return $flash;
+}
+
+/**
+ * Adresse de retour après une action, venue d'un champ caché : on n'accepte que
+ * le dashboard et le back-office, pour ne jamais rediriger vers un autre site.
+ */
+function safe_return(?string $url, string $default): string
+{
+    return is_string($url) && preg_match('#^/(dashboard|admin)(\?[a-z]+=[a-z0-9_-]+(&[a-z]+=[a-z0-9_-]*)*)?$#', $url)
+        ? $url
+        : $default;
+}
+
+require_once __DIR__ . '/rules.php';
