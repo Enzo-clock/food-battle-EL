@@ -1,10 +1,18 @@
 <?php
 // filepath: app/views/dashboard.php
-// Variables fournies par DashboardController::index() :
-// $tabs, $counts, $active, $items, $total
+// Vue commune au dashboard (/dashboard, mes contenus) et au back-office (/admin, tous les contenus).
+// Variables fournies par DashboardController::render() :
+// $context ('user' | 'admin'), $tabs, $counts, $alerts, $active, $items, $total, $flash, $q
 
+$isAdmin = $context === 'admin';
+// Un utilisateur PROPOSE une catégorie (validée ensuite par un admin) : le bouton le dit.
+if (!is_admin() && isset($tabs['categories']['create'])) {
+    $tabs['categories']['create']['label'] = 'Proposer une catégorie';
+}
 $tab = $tabs[$active];
 $today = date('Y-m-d');
+$baseUrl = $isAdmin ? '/admin' : '/dashboard';
+$returnUrl = $baseUrl . '?onglet=' . $active; // après une action, on revient sur le même onglet
 
 /** Icône SVG d'un onglet (mêmes tracés que le dock). */
 $icon = static fn(string $paths, int $size = 24): string =>
@@ -15,31 +23,41 @@ $icon = static fn(string $paths, int $size = 24): string =>
 $dishPicture = static fn(?string $picture, ?string $category): string =>
     $picture ?: image_for((string) $category);
 
-$emptyStates = [
+$emptyStates = $q !== '' ? array_fill_keys(array_keys($tabs), ['Aucun résultat', 'Aucun élément ne correspond à « ' . $q . ' ».']) : [
     'duels'       => ['Aucun duel pour l’instant', 'Choisis deux plats d’une même catégorie et lance le premier affrontement.'],
     'tournois'    => ['Aucun tournoi pour l’instant', 'Un tournoi réunit 4 de tes duels d’une même catégorie : crée d’abord tes duels, puis lance le tournoi.'],
     'plats'       => ['Tu n’as encore ajouté aucun plat', 'Ajoute ton plat préféré du quartier : il entrera dans les duels de sa catégorie.'],
     'restaurants' => ['Tu n’as encore ajouté aucun restaurant', 'Ajoute une adresse pour pouvoir y rattacher ses plats.'],
     'categories'  => ['Tu n’as encore créé aucune catégorie', 'Il manque un type de plat ? Crée sa catégorie : dès deux plats, elle a ses propres duels.'],
+    'utilisateurs' => ['Aucun utilisateur', 'Aucun compte pour l’instant.'],
 ];
 
-$panelSubtitle = [
-    'duels'       => plural($counts['duels'], 'duel créé', 'duels créés'),
-    'tournois'    => plural($counts['tournois'], 'tournoi créé', 'tournois créés'),
-    'plats'       => plural($counts['plats'], 'plat ajouté', 'plats ajoutés'),
-    'restaurants' => plural($counts['restaurants'], 'restaurant ajouté', 'restaurants ajoutés'),
-    'categories'  => plural($counts['categories'], 'catégorie créée', 'catégories créées'),
-][$active];
+$panelSubtitle = $isAdmin
+    ? ($q !== '' ? plural(count($items), 'résultat') . ' pour « ' . $q . ' »' : plural($counts[$active], 'élément') . ' sur le site')
+    : [
+        'duels'       => plural($counts['duels'], 'duel créé', 'duels créés'),
+        'tournois'    => plural($counts['tournois'], 'tournoi créé', 'tournois créés'),
+        'plats'       => plural($counts['plats'], 'plat ajouté', 'plats ajoutés'),
+        'restaurants' => plural($counts['restaurants'], 'restaurant ajouté', 'restaurants ajoutés'),
+        'categories'  => plural($counts['categories'], 'catégorie créée', 'catégories créées'),
+    ][$active];
+
+/** « par john.raven » : dans le back-office, chaque contenu indique son créateur. */
+$byLine = static fn(array $row): string => $isAdmin ? '<span class="dash-by">par ' . h($row['creator']) . '</span>' : '';
+
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="dash">
     <header class="dash__head">
-        <span class="pill">MON ESPACE</span>
-        <h1 class="dash__title">Dashboard</h1>
+        <span class="pill"><?= $isAdmin ? 'ADMINISTRATION' : 'MON ESPACE' ?></span>
+        <h1 class="dash__title"><?= $isAdmin ? 'Back-office' : 'Dashboard' ?></h1>
         <p class="dash__lead">
-            <?php if ($total === 0): ?>
+            <?php if ($isAdmin): ?>
+                Tous les contenus du site : <strong><?= plural($total, 'contribution') ?></strong>.
+                Corrige, archive ou supprime selon les mêmes règles que les créateurs, et gère les administrateurs.
+            <?php elseif ($total === 0): ?>
                 Tout ce que tu crées sur FoodBattle se retrouvera ici. Commence par un plat ou un duel !
             <?php else: ?>
                 Tout ce que tu as créé sur FoodBattle, au même endroit :
@@ -48,12 +66,21 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
     </header>
 
+    <?php if ($flash): ?>
+        <p class="dash-flash dash-flash--<?= h($flash['type']) ?>" role="<?= $flash['type'] === 'error' ? 'alert' : 'status' ?>">
+            <?= h($flash['message']) ?>
+        </p>
+    <?php endif ?>
+
     <nav class="dash-tabs" aria-label="Types de contenus">
         <?php foreach ($tabs as $key => $t): ?>
-            <a class="dash-tab" href="/dashboard?onglet=<?= h($key) ?>" <?= $key === $active ? 'aria-current="page"' : '' ?>>
+            <a class="dash-tab" href="<?= h($baseUrl) ?>?onglet=<?= h($key) ?>" <?= $key === $active ? 'aria-current="page"' : '' ?>>
                 <?= $icon($t['icon'], 22) ?>
                 <span class="dash-tab__label"><?= h($t['label']) ?></span>
                 <span class="dash-tab__count"><?= $counts[$key] ?></span>
+                <?php if (!empty($alerts[$key])): ?>
+                    <span class="dash-tab__alert" title="<?= (int) $alerts[$key] ?> à valider"><span aria-hidden="true"><?= (int) $alerts[$key] ?></span><span class="visually-hidden">, <?= (int) $alerts[$key] ?> à valider</span></span>
+                <?php endif ?>
             </a>
         <?php endforeach ?>
     </nav>
@@ -61,10 +88,18 @@ require_once __DIR__ . '/../includes/header.php';
     <section class="dash-panel box" aria-labelledby="dash-panel-title">
         <header class="dash-panel__head">
             <div>
-                <h2 class="dash-panel__title" id="dash-panel-title"><?= h($tab['title']) ?></h2>
+                <h2 class="dash-panel__title" id="dash-panel-title"><?= h($isAdmin ? $tab['label'] : $tab['title']) ?></h2>
                 <p class="dash-panel__sub"><?= h($panelSubtitle) ?></p>
             </div>
-            <?php if ($items): ?>
+            <?php if ($isAdmin): ?>
+                <form class="dash-search" method="get" action="/admin" role="search">
+                    <input type="hidden" name="onglet" value="<?= h($active) ?>">
+                    <label class="visually-hidden" for="dash-q">Rechercher dans « <?= h($tab['label']) ?> »</label>
+                    <input id="dash-q" type="search" name="q" value="<?= h($q) ?>" maxlength="100"
+                        placeholder="Rechercher…">
+                    <button class="btn btn--dark btn--sm" type="submit">Rechercher</button>
+                </form>
+            <?php elseif ($items && $tab['create']): ?>
                 <a class="btn btn--primary btn--sm" href="<?= h($tab['create']['href']) ?>">
                     <span aria-hidden="true">+</span> <?= h($tab['create']['label']) ?>
                 </a>
@@ -76,9 +111,54 @@ require_once __DIR__ . '/../includes/header.php';
                 <span class="dash-empty__icon"><?= $icon($tab['icon'], 40) ?></span>
                 <h3 class="dash-empty__title"><?= h($emptyStates[$active][0]) ?></h3>
                 <p class="dash-empty__text"><?= h($emptyStates[$active][1]) ?></p>
-                <a class="btn btn--primary" href="<?= h($tab['create']['href']) ?>">
-                    <span aria-hidden="true">+</span> <?= h($tab['create']['label']) ?>
-                </a>
+                <?php if ($q !== ''): ?>
+                    <a class="btn btn--ghost" href="<?= h($returnUrl) ?>">Tout afficher</a>
+                <?php elseif ($tab['create']): ?>
+                    <a class="btn btn--primary" href="<?= h($tab['create']['href']) ?>">
+                        <span aria-hidden="true">+</span> <?= h($tab['create']['label']) ?>
+                    </a>
+                <?php endif ?>
+            </div>
+
+        <?php elseif ($active === 'utilisateurs'): ?>
+            <div class="dash-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Pseudo</th>
+                            <th scope="col">E-mail</th>
+                            <th scope="col">Inscrit le</th>
+                            <th scope="col">Contributions</th>
+                            <th scope="col">Rôle</th>
+                            <th scope="col"><span class="visually-hidden">Action</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($items as $u): ?>
+                            <?php $isMe = (int) $u['id'] === current_user_id(); ?>
+                            <tr>
+                                <th scope="row"><?= h($u['username']) ?><?= $isMe ? ' <small>(toi)</small>' : '' ?></th>
+                                <td><?= h($u['email']) ?></td>
+                                <td><?= h(date_fr($u['created_at'])) ?></td>
+                                <td><?= (int) $u['contributions'] ?></td>
+                                <td><span class="tag <?= $u['role'] === 'admin' ? 'tone-lilac' : 'tone-white' ?>"><?= $u['role'] === 'admin' ? 'Admin' : 'Utilisateur' ?></span></td>
+                                <td>
+                                    <?php if ($isMe): ?>
+                                        <span class="dash-me" title="Un autre administrateur peut changer ton rôle : le site ne reste jamais sans admin.">Ton compte</span>
+                                    <?php else: ?>
+                                        <form method="post" action="/admin/utilisateurs/<?= (int) $u['id'] ?>/role">
+                                            <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+                                            <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'user' : 'admin' ?>">
+                                            <button class="btn btn--xs <?= $u['role'] === 'admin' ? 'btn--ghost' : 'btn--dark' ?>" type="submit">
+                                                <?= $u['role'] === 'admin' ? 'Retirer admin' : 'Nommer admin' ?>
+                                            </button>
+                                        </form>
+                                    <?php endif ?>
+                                </td>
+                            </tr>
+                        <?php endforeach ?>
+                    </tbody>
+                </table>
             </div>
 
         <?php elseif ($active === 'duels'): ?>
@@ -130,12 +210,16 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?php endif ?>
                                 <span><?= $votes ? plural($votes, 'vote') : 'Pas encore de vote' ?></span>
                                 <span>Créé le <?= h(date_fr($d['battle_date'])) ?></span>
+                                <?= $byLine($d) ?>
                             </p>
-                            <?php if ($category !== ''): ?>
-                                <a class="link-strong" href="/duel?<?= h(http_build_query(['categorie' => $category, 'a' => $d['a_id'], 'b' => $d['b_id']])) ?>">
-                                    Voir le duel <span aria-hidden="true">→</span>
-                                </a>
-                            <?php endif ?>
+                            <div class="dash-item__end">
+                                <?php if ($category !== ''): ?>
+                                    <a class="link-strong" href="/duel?<?= h(http_build_query(['categorie' => $category, 'a' => $d['a_id'], 'b' => $d['b_id']])) ?>">
+                                        Voir le duel <span aria-hidden="true">→</span>
+                                    </a>
+                                <?php endif ?>
+                                <?php $type = 'duel'; $row = $d; $canEdit = false; require __DIR__ . '/partials/item-actions.php'; ?>
+                            </div>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -166,6 +250,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <span class="tag tone-<?= h(category_tone($category)) ?>"><?= h(category_label($category)) ?></span>
                                     <?php endif ?>
                                     <span>Quarts du <?= h(date_fr($t['start_date'])) ?> au <?= h(date_fr($end)) ?></span>
+                                    <?= $byLine($t) ?>
                                 </p>
                             </div>
                             <p class="dash-stat">
@@ -199,6 +284,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     Vainqueur : <strong><?= h($t['winner']) ?></strong>
                                 </p>
                             <?php endif ?>
+                            <?php $type = 'tournoi'; $row = $t; $canEdit = true; require __DIR__ . '/partials/item-actions.php'; ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -218,11 +304,16 @@ require_once __DIR__ . '/../includes/header.php';
                         }
                     }
                     ?>
-                    <li class="dash-item dash-row">
+                    <li class="dash-item dash-row<?= $d['archived_at'] !== null ? ' is-archived' : '' ?>">
                         <img class="dash-row__thumb" src="<?= h($dishPicture($d['picture'], $firstCategory)) ?>"
                             alt="" width="88" height="88" loading="lazy">
                         <div class="dash-row__body">
-                            <h3 class="dash-item__title"><?= h($d['name']) ?></h3>
+                            <h3 class="dash-item__title">
+                                <?= h($d['name']) ?>
+                                <?php if ($d['archived_at'] !== null): ?>
+                                    <span class="tag dash-archived">Archivé</span>
+                                <?php endif ?>
+                            </h3>
                             <p class="dash-row__place">
                                 <?= $d['restaurant'] !== null ? h($d['restaurant']) . ' · ' . h($d['city']) : 'Plat maison' ?>
                             </p>
@@ -230,16 +321,18 @@ require_once __DIR__ . '/../includes/header.php';
                                 <?php foreach ($d['categories'] as $slug): ?>
                                     <span class="tag tone-<?= h(category_tone($slug)) ?>"><?= h(category_label($slug)) ?></span>
                                 <?php endforeach ?>
-                                <span><?= plural((int) $d['votes'], 'vote') ?> · <?= plural((int) $d['duels'], 'duel') ?></span>
+                                <span><?= plural((int) $d['votes'], 'vote') ?> · <?= plural((int) $d['battles'], 'duel') ?></span>
+                                <?= $byLine($d) ?>
                             </p>
                         </div>
                         <div class="dash-row__aside">
                             <p class="dash-row__price"><?= $d['price'] !== null ? euro($d['price']) : '—' ?></p>
-                            <?php if ($duelCategory !== ''): ?>
+                            <?php if ($duelCategory !== '' && $d['archived_at'] === null): ?>
                                 <a class="link-strong" href="/duel/creer?<?= h(http_build_query(['categorie' => $duelCategory, 'a' => $d['id']])) ?>">
                                     Mettre en duel <span aria-hidden="true">→</span>
                                 </a>
                             <?php endif ?>
+                            <?php $type = 'plat'; $row = $d; $canEdit = true; require __DIR__ . '/partials/item-actions.php'; ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -252,7 +345,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <span class="dash-row__thumb dash-row__thumb--icon tone-lemon"><?= $icon($tabs['restaurants']['icon'], 36) ?></span>
                         <div class="dash-row__body">
                             <h3 class="dash-item__title"><?= h($r['name']) ?></h3>
-                            <p class="dash-row__place"><?= h($r['address']) ?> · <?= h($r['city']) ?></p>
+                            <p class="dash-row__place"><?= h($r['address']) ?> · <?= h($r['city']) ?> <?= $byLine($r) ?></p>
                             <?php if ($r['description']): ?>
                                 <p class="dash-row__desc"><?= h($r['description']) ?></p>
                             <?php endif ?>
@@ -265,6 +358,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <a class="link-strong" href="/plat/creer?restaurant=<?= (int) $r['id'] ?>">
                                 Ajouter un plat ici <span aria-hidden="true">→</span>
                             </a>
+                            <?php $type = 'restaurant'; $row = $r; $canEdit = true; require __DIR__ . '/partials/item-actions.php'; ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -276,32 +370,68 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php
                     $dishes = (int) $c['dishes'];
                     $ready = $dishes >= 2;
+                    $status = $c['status'];
                     ?>
-                    <li class="dash-item dash-row">
+                    <li class="dash-item dash-row<?= $status !== 'approved' ? ' is-' . h($status) : '' ?>">
                         <img class="dash-row__thumb" src="<?= h($c['picture']) ?>" alt="" width="88" height="88" loading="lazy">
                         <div class="dash-row__body">
                             <h3 class="dash-item__title">
                                 <span class="tag tone-<?= h($c['color']) ?> dash-row__chip"><?= h($c['name']) ?></span>
                             </h3>
                             <p class="dash-meta">
-                                <?php if ($ready): ?>
+                                <?php if ($status === 'pending'): ?>
+                                    <span class="dash-status dash-status--pending">En attente de validation</span>
+                                <?php elseif ($status === 'rejected'): ?>
+                                    <span class="dash-status dash-status--rejected">Refusée</span>
+                                <?php elseif ($ready): ?>
                                     <span class="dash-status dash-status--ok">Prête pour les duels</span>
                                 <?php else: ?>
                                     <span class="dash-status">Encore <?= plural(2 - $dishes, 'plat') ?> pour les duels</span>
                                 <?php endif ?>
-                                <span>Créée le <?= h(date_fr($c['created_at'])) ?></span>
+                                <span><?= $status === 'approved' ? 'Créée' : 'Proposée' ?> le <?= h(date_fr($c['created_at'])) ?></span>
+                                <?= $byLine($c) ?>
                             </p>
+                            <?php if ($status === 'rejected' && $c['rejection_reason']): ?>
+                                <p class="dash-reason"><strong>Motif :</strong> <?= h($c['rejection_reason']) ?></p>
+                            <?php elseif ($status === 'pending' && !$isAdmin): ?>
+                                <p class="dash-reason">Un administrateur va la relire. Elle n’est visible que par toi en attendant.</p>
+                            <?php endif ?>
                         </div>
                         <div class="dash-row__aside">
-                            <p class="dash-stat">
-                                <strong><?= $dishes ?></strong>
-                                <span><?= $dishes > 1 ? 'plats' : 'plat' ?></span>
-                            </p>
-                            <?php if ($ready): ?>
-                                <a class="link-strong" href="/duel?categorie=<?= h($c['slug']) ?>">Jouer <span aria-hidden="true">→</span></a>
-                            <?php else: ?>
-                                <a class="link-strong" href="/plat/creer?categorie=<?= (int) $c['id'] ?>">Ajouter un plat <span aria-hidden="true">→</span></a>
+                            <?php if ($status === 'pending' && $isAdmin): ?>
+                                <!-- File de modération : valider, ou refuser avec un motif (sans JavaScript) -->
+                                <div class="dash-review">
+                                    <form method="post" action="/admin/categories/<?= (int) $c['id'] ?>/valider">
+                                        <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+                                        <button class="btn btn--xs btn--valid" type="submit">Valider</button>
+                                    </form>
+                                    <details class="dash-reject">
+                                        <summary class="btn btn--xs btn--danger-ghost">Refuser</summary>
+                                        <form method="post" action="/admin/categories/<?= (int) $c['id'] ?>/refuser" class="dash-reject__form">
+                                            <input type="hidden" name="token" value="<?= h(csrf()) ?>">
+                                            <label for="reason-<?= (int) $c['id'] ?>">Motif, lu par <?= h($c['creator']) ?></label>
+                                            <textarea id="reason-<?= (int) $c['id'] ?>" name="reason" rows="3" maxlength="255" required
+                                                placeholder="Ex. C’est un régime, pas un type de plat : ajoute ton plat dans sa catégorie."></textarea>
+                                            <button class="btn btn--xs btn--danger" type="submit">Confirmer le refus</button>
+                                        </form>
+                                    </details>
+                                </div>
+                            <?php elseif ($status === 'approved'): ?>
+                                <p class="dash-stat">
+                                    <strong><?= $dishes ?></strong>
+                                    <span><?= $dishes > 1 ? 'plats' : 'plat' ?></span>
+                                </p>
+                                <?php if ($ready): ?>
+                                    <a class="link-strong" href="/duel?categorie=<?= h($c['slug']) ?>">Jouer <span aria-hidden="true">→</span></a>
+                                <?php else: ?>
+                                    <a class="link-strong" href="/plat/creer?categorie=<?= (int) $c['id'] ?>">Ajouter un plat <span aria-hidden="true">→</span></a>
+                                <?php endif ?>
                             <?php endif ?>
+                            <?php
+                            // Validée : seul un admin la modifie. En attente ou refusée : son créateur peut la corriger.
+                            $type = 'categorie'; $row = $c; $canEdit = is_admin() || $status !== 'approved';
+                            require __DIR__ . '/partials/item-actions.php';
+                            ?>
                         </div>
                     </li>
                 <?php endforeach ?>
@@ -310,14 +440,27 @@ require_once __DIR__ . '/../includes/header.php';
     </section>
 </section>
 
+<?php require __DIR__ . '/partials/confirm-dialog.php'; ?>
 <script>
-    // Mobile : la barre d'onglets défile ; on y amène l'onglet actif pour qu'il soit visible au chargement.
+    // Mobile : la barre d'onglets défile. On y amène l'onglet actif, et on signale par un dégradé
+    // les onglets cachés à gauche ou à droite (classes has-more-left / has-more-right).
     (function () {
         var tabs = document.querySelector('.dash-tabs');
-        var current = tabs && tabs.querySelector('[aria-current="page"]');
+        if (!tabs) return;
+        var current = tabs.querySelector('[aria-current="page"]');
+
+        function update() {
+            var max = tabs.scrollWidth - tabs.clientWidth;
+            tabs.classList.toggle('has-more-left', tabs.scrollLeft > 2);
+            tabs.classList.toggle('has-more-right', tabs.scrollLeft < max - 2);
+        }
+
         if (current && tabs.scrollWidth > tabs.clientWidth) {
             tabs.scrollLeft = current.offsetLeft - (tabs.clientWidth - current.offsetWidth) / 2;
         }
+        tabs.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
     })();
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -6,6 +6,7 @@
    3. Layout               7. Connexion / inscription 11. Pages héritées (ancien code)
    4. Composants           8. Pages de création       12. Dashboard (/dashboard)
                                                       13. Création de tournoi (/tournoi/creer)
+                                                      14. Modifier / supprimer (CRUD, back-office)
 
    Chaque section contient ses propres règles responsive à sa fin,
    pour qu'on n'ait jamais à chercher une même règle à deux endroits.
@@ -2869,18 +2870,12 @@ details>summary {
     position: relative;
     /* référence de offsetLeft pour recentrer l'onglet actif (vue dashboard) */
     display: flex;
-    gap: 12px;
-    /* une seule ligne : défile horizontalement si l'écran est trop étroit */
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-    /* place pour l'ombre et l'anneau de focus, coupés sinon par le défilement */
+    flex-wrap: wrap;
+    /* ordinateur et tablette : rien n'est caché, les onglets passent à la ligne si besoin */
+    gap: 10px;
+    /* place pour l'ombre et l'anneau de focus */
     padding: 6px 10px 12px 6px;
     margin: -6px -10px -12px -6px;
-}
-
-.dash-tabs::-webkit-scrollbar {
-    display: none;
 }
 
 .dash-tab {
@@ -2889,13 +2884,13 @@ details>summary {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    min-height: 56px;
-    padding: 0 14px 0 18px;
+    min-height: 52px;
+    padding: 0 12px 0 16px;
     border: var(--border);
     border-radius: var(--radius-pill);
     background: var(--white);
     box-shadow: var(--shadow-sm);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
     text-decoration: none;
     white-space: nowrap;
@@ -3082,6 +3077,7 @@ details>summary {
 .dash-row__price {
     font-size: 22px;
     font-weight: 800;
+    white-space: nowrap;
 }
 
 /* « encore 1 plat pour les duels » : contour pointillé = pas encore prêt */
@@ -3345,6 +3341,31 @@ details>summary {
 @media (max-width: 700px) {
     .dash {
         gap: 22px;
+    }
+
+    /* mobile : une seule ligne qui défile au doigt. Un dégradé sur le bord indique
+       qu'il reste des onglets de ce côté ; il disparaît au bout (classes posées par le script de la vue). */
+    .dash-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .dash-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .dash-tabs.has-more-right {
+        mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+    }
+
+    .dash-tabs.has-more-left {
+        mask-image: linear-gradient(to left, #000 calc(100% - 48px), transparent);
+    }
+
+    .dash-tabs.has-more-left.has-more-right {
+        mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
     }
 
     .dash-tab {
@@ -3895,5 +3916,531 @@ details>summary {
     .tour-duel:hover,
     .tour-duel.is-picked {
         transform: none;
+    }
+}
+
+/* ==========================================================================
+   14. Modifier / supprimer (pages de modification, confirmation, actions, back-office)
+   Rouge = suppression définitive (irréversible) ; noir = archivage (réversible).
+   ========================================================================== */
+
+/* masqué à l'écran, lu par les lecteurs d'écran */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- Boutons --------------------------------------------------------------- */
+
+.btn--xs {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 14px;
+    box-shadow: 2px 2px 0 var(--ink);
+}
+
+.btn--danger {
+    background: var(--danger);
+    color: var(--white);
+}
+
+.btn--danger:hover {
+    color: var(--white);
+}
+
+.btn--danger-ghost {
+    background: var(--white);
+    color: var(--danger);
+    border-color: var(--danger);
+    box-shadow: 2px 2px 0 var(--danger);
+}
+
+.btn--danger-ghost:hover {
+    color: var(--danger);
+}
+
+/* --- Actions dans le dashboard et le back-office ----------------------------- */
+
+.dash-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.dash-actions form {
+    margin: 0;
+}
+
+/* action impossible : cadenas + raison, au lieu d'un bouton qui mènerait à un refus */
+.dash-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 2px dashed var(--ink);
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: help;
+}
+
+.dash-item__end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+
+.dash-by {
+    font-weight: 700;
+}
+
+.dash-archived {
+    margin-left: 6px;
+    vertical-align: middle;
+    background: var(--ink);
+    color: var(--white);
+    font-size: 12px;
+}
+
+/* plat archivé : visible pour son créateur, mais clairement en retrait */
+.dash-row.is-archived {
+    background: repeating-linear-gradient(-45deg, var(--cream), var(--cream) 10px, #F3EBDA 10px, #F3EBDA 20px);
+}
+
+.dash-row.is-archived .dash-row__thumb {
+    filter: grayscale(1);
+    opacity: .6;
+}
+
+/* message après une action (modifié, supprimé, archivé…) */
+.dash-flash {
+    padding: 14px 18px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--mint);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+.dash-flash--error {
+    background: var(--pink);
+}
+
+/* recherche du back-office */
+.dash-search {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    /* sinon un élément flex ne rétrécit pas sous la largeur de son contenu */
+    max-width: 440px;
+}
+
+.dash-search input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+}
+
+/* tableau des utilisateurs */
+.dash-table table {
+    margin: 0;
+    box-shadow: none;
+}
+
+.dash-table th[scope="row"] {
+    font-weight: 700;
+    background: none;
+    border-bottom: 2px solid #EDE6D6;
+    text-transform: none;
+    font-size: inherit;
+}
+
+.dash-table form {
+    margin: 0;
+}
+
+.dash-table td,
+.dash-table th {
+    white-space: nowrap;
+    /* une date ou un e-mail sur une ligne ; sur mobile, le tableau défile */
+}
+
+/* --- Pages de modification --------------------------------------------------- */
+
+/* champ verrouillé : lisible, mais clairement non modifiable */
+.field--locked input {
+    background: #F3EBDA;
+    border-style: dashed;
+    color: #4B4B4B;
+    cursor: not-allowed;
+}
+
+.field label svg,
+.create-form__group legend svg {
+    vertical-align: -3px;
+}
+
+/* explication d'une règle (verrou, catégorie définitive…) */
+.field__notice {
+    display: block;
+    padding: 10px 12px;
+    border: 2px dashed var(--ink);
+    border-radius: 12px;
+    background: var(--lemon);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.field__notice svg {
+    display: inline;
+    margin-right: 4px;
+    vertical-align: -4px;
+}
+
+.locked-value {
+    display: flex;
+}
+
+.locked-value .tag {
+    padding: 6px 18px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+/* « Reprendre la photo du plat d'origine », « Retirer la photo » */
+.keep-picture {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    background: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.keep-picture input {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--ink);
+}
+
+.keep-picture img {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+}
+
+.keep-picture small {
+    font-weight: 400;
+}
+
+/* zone « Supprimer ce… » en bas des pages de modification */
+.danger-zone {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    border-color: var(--danger);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--danger);
+}
+
+.danger-zone > div {
+    flex: 1 1 320px;
+}
+
+.danger-zone__title {
+    margin-bottom: 4px;
+    font-size: 18px;
+}
+
+/* --- Confirmation (page et fenêtre modale) ----------------------------------- */
+
+.confirm-page {
+    max-width: 720px;
+}
+
+.confirm-box {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.confirm-box--delete {
+    border-color: var(--danger);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--danger);
+}
+
+.confirm-box--archive {
+    background: var(--lemon);
+}
+
+.confirm-box--blocked {
+    background: var(--pink);
+}
+
+.confirm-box__text {
+    font-size: 17px;
+}
+
+.confirm-box__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+    margin: 0;
+}
+
+.confirm-dialog {
+    width: min(520px, calc(100vw - 32px));
+    padding: 0;
+    border: var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: var(--shadow);
+    color: var(--ink);
+}
+
+.confirm-dialog::backdrop {
+    background: rgba(17, 17, 17, .55);
+}
+
+.confirm-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    margin: 0;
+}
+
+.confirm-dialog__title {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+}
+
+/* --- Pages d'erreur ---------------------------------------------------------- */
+
+.error-page {
+    max-width: 640px;
+    margin: 40px auto 0;
+}
+
+.error-page__code {
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+@media (max-width: 700px) {
+    .dash-actions {
+        justify-content: flex-start;
+    }
+
+    .dash-search {
+        max-width: none;
+        flex-basis: 100%;
+    }
+
+    /* le bouton garde sa taille : c'est le champ qui prend la place (la règle « bouton pleine largeur »
+       du panneau vise le bouton « Ajouter », pas la recherche) */
+    .dash-panel__head .dash-search .btn {
+        width: auto;
+        flex: none;
+    }
+
+    .dash-item__end {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* lignes (plats, restaurants, catégories) : chiffre + lien, puis les boutons sur toute la largeur */
+    .dash-row__aside {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+
+    .dash-row__aside .dash-actions {
+        flex-basis: 100%;
+    }
+
+    .dash-row__aside .dash-actions > *,
+    .dash-row__aside .dash-actions .btn {
+        flex: 1;
+    }
+
+    .dash-row__aside .dash-actions form .btn {
+        width: 100%;
+    }
+
+    .confirm-box__actions .btn {
+        flex: 1;
+    }
+}
+
+.dash-me {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4B4B4B;
+}
+
+/* --- Modération des catégories ---------------------------------------------- */
+
+/* « N à valider » : badge rond sur le coin de l'onglet, comme les « + » du dock.
+   Il ne prend aucune largeur : les onglets restent sur une ligne. */
+.dash-tab {
+    position: relative;
+}
+
+.dash-tab__alert {
+    position: absolute;
+    top: -9px;
+    right: -6px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--orange);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.dash-status--pending {
+    background: var(--lemon);
+}
+
+.dash-status--rejected {
+    border-style: solid;
+    background: var(--pink);
+}
+
+.dash-row.is-pending {
+    border-style: dashed;
+}
+
+.dash-row.is-rejected .dash-row__thumb {
+    filter: grayscale(1);
+    opacity: .6;
+}
+
+/* motif d'un refus, ou explication de l'attente */
+.dash-reason {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.dash-review {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+}
+
+.dash-reject summary {
+    cursor: pointer;
+}
+
+.dash-review form {
+    margin: 0;
+}
+
+.btn--valid {
+    background: var(--mint);
+}
+
+/* « Refuser » : le motif se déplie sous le bouton, sans JavaScript */
+.dash-reject summary {
+    list-style: none;
+}
+
+.dash-reject summary::-webkit-details-marker {
+    display: none;
+}
+
+.dash-reject[open] summary {
+    background: var(--pink);
+}
+
+.dash-reject {
+    position: relative;
+}
+
+/* le motif s'ouvre par-dessus, sous le bouton : « Valider » ne bouge pas */
+.dash-reject__form {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 5;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(320px, 80vw);
+    margin: 0;
+    padding: 12px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    background: var(--white);
+    text-align: left;
+}
+
+.dash-reject__form label {
+    font-size: 13px;
+}
+
+.dash-reject__form textarea {
+    min-height: 80px;
+    font-size: 14px;
+}
+
+.create-success--pending {
+    background: var(--lemon);
+}
+
+@media (max-width: 700px) {
+    .dash-review {
+        flex-basis: 100%;
+        justify-content: flex-start;
+    }
+
+    /* au doigt : le motif s'insère dans la ligne plutôt que par-dessus */
+    .dash-reject {
+        flex-basis: 100%;
+    }
+
+    .dash-reject__form {
+        position: static;
+        width: 100%;
+        margin-top: 10px;
+        box-shadow: none;
     }
 }

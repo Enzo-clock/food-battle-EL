@@ -3,10 +3,14 @@
 
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../models/Dashboard.php';
+require_once __DIR__ . '/../includes/rules.php';
 
 class DashboardController
 {
-    public function __construct(private PDO $db)
+    /** Pastilles « à traiter » par onglet (back-office : catégories en attente). */
+    protected array $alerts = [];
+
+    public function __construct(protected PDO $db)
     {
     }
 
@@ -53,15 +57,19 @@ class DashboardController
     /** GET /dashboard : les ressources créées par l'utilisateur connecté, un onglet par type. */
     public function index(): void
     {
-        if (empty($_SESSION['user_id'])) {
-            header('Location: /login', true, 303);
-            exit;
-        }
+        require_login();
 
-        $userId = (int) $_SESSION['user_id'];
+        $userId = current_user_id();
+        $this->render('user', self::tabs(), ['user' => $userId], (new Dashboard($this->db))->counts($userId));
+    }
+
+    /**
+     * Partie commune au dashboard et au back-office (même vue, mêmes composants).
+     * $context : 'user' (mes contenus) ou 'admin' (tous les contenus, avec recherche et créateur).
+     */
+    protected function render(string $context, array $tabs, array $filter, array $counts): void
+    {
         $dashboard = new Dashboard($this->db);
-        $tabs = self::tabs();
-        $counts = $dashboard->counts($userId);
 
         // Onglet demandé (?onglet=plats). Sans choix explicite : le premier onglet qui a du contenu,
         // pour ne pas ouvrir sur une liste vide quand l'utilisateur a déjà créé autre chose.
@@ -69,20 +77,24 @@ class DashboardController
         if (isset($tabs[$requested])) {
             $active = $requested;
         } else {
-            $active = array_key_first(array_filter($counts)) ?? 'duels';
+            $active = array_key_first(array_filter(array_intersect_key($counts, $tabs))) ?? array_key_first($tabs);
         }
 
         // Seul l'onglet affiché est chargé : les autres n'ont besoin que de leur compteur.
         $items = match ($active) {
-            'duels'       => $dashboard->duels($userId),
-            'tournois'    => $dashboard->tournaments($userId),
-            'plats'       => $dashboard->dishes($userId),
-            'restaurants' => $dashboard->establishments($userId),
-            'categories'  => $dashboard->categories($userId),
+            'duels'        => $dashboard->duels($filter),
+            'tournois'     => $dashboard->tournaments($filter),
+            'plats'        => $dashboard->dishes($filter),
+            'restaurants'  => $dashboard->establishments($filter),
+            'categories'   => $dashboard->categories($filter),
+            'utilisateurs' => $dashboard->users($filter['q'] ?? ''),
         };
 
-        $total = array_sum($counts);
-        $title = 'Dashboard';
+        $total = array_sum(array_intersect_key($counts, self::tabs()));
+        $flash = flash_take();
+        $alerts = $this->alerts;
+        $q = $filter['q'] ?? '';
+        $title = $context === 'admin' ? 'Back-office' : 'Dashboard';
         require __DIR__ . '/../views/dashboard.php';
     }
 }
