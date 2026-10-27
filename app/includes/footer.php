@@ -9,7 +9,6 @@
                 <a href="/mentions-legales">Mentions légales</a>
                 <a href="/confidentialite">Confidentialité (RGPD)</a>
                 <a href="/contact">Contact</a>
-                <a href="/dashboard.php">Espace admin</a>
             </nav>
         </div>
     </footer>
