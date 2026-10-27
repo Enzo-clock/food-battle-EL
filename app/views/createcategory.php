@@ -1,7 +1,7 @@
 <?php
 // filepath: app/views/createcategory.php
 // Variables fournies par CategoryController::create() :
-// $errors, $old, $colors, $categories, $created, $return
+// $errors, $old, $colors, $categories, $created (catégorie qui vient d'être créée ou proposée), $return, $isAdmin
 $errors ??= [];
 
 // Un navigateur ne conserve jamais un fichier choisi après un envoi en erreur :
@@ -21,17 +21,34 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="create-page">
     <header class="create-page__head">
         <span class="pill">CONTRIBUER</span>
-        <h1 class="create-page__title">Ajouter une catégorie</h1>
-        <p class="create-page__lead">Il manque un type de plat ? Crée sa catégorie : dès qu’elle aura deux plats, elle aura ses propres duels.</p>
+        <h1 class="create-page__title"><?= $isAdmin ? 'Ajouter une catégorie' : 'Proposer une catégorie' ?></h1>
+        <p class="create-page__lead">
+            <?php if ($isAdmin): ?>
+                En tant qu’administrateur, ta catégorie est publiée tout de suite : dès qu’elle aura deux plats, elle aura ses propres duels.
+            <?php else: ?>
+                Il manque un <strong>type de plat</strong> ? Propose sa catégorie : un administrateur la valide,
+                puis, dès qu’elle a deux plats, elle a ses propres duels.
+            <?php endif ?>
+        </p>
     </header>
 
-    <?php if ($created): ?>
+    <?php if ($created && $created['status'] === 'approved'): ?>
         <div class="create-success box" role="status">
-            <p class="create-success__title">La catégorie « <?= h($created['label']) ?> » a bien été créée.</p>
+            <p class="create-success__title">La catégorie « <?= h($created['name']) ?> » a bien été créée.</p>
             <p>Ajoute-lui au moins deux plats pour lancer ses premiers duels.</p>
             <div class="create-success__actions">
-                <a class="btn btn--primary" href="/plat/creer?categorie=<?= (int) $created['id'] ?>">Ajouter un plat dans « <?= h($created['label']) ?> »</a>
+                <a class="btn btn--primary" href="/plat/creer?categorie=<?= (int) $created['id'] ?>">Ajouter un plat dans « <?= h($created['name']) ?> »</a>
                 <a class="btn btn--ghost" href="/categorie/creer">Créer une autre catégorie</a>
+            </div>
+        </div>
+    <?php elseif ($created): ?>
+        <div class="create-success create-success--pending box" role="status">
+            <p class="create-success__title">« <?= h($created['name']) ?> » est envoyée pour validation.</p>
+            <p>Un administrateur va la relire. En attendant, elle n’est visible que par toi, dans ton dashboard :
+                tu y verras sa validation, ou le motif d’un refus.</p>
+            <div class="create-success__actions">
+                <a class="btn btn--primary" href="/dashboard?onglet=categories">Suivre ma proposition</a>
+                <a class="btn btn--ghost" href="/plat/creer">Ajouter un plat dans une catégorie existante</a>
             </div>
         </div>
     <?php endif ?>
@@ -84,6 +101,10 @@ require_once __DIR__ . '/../includes/header.php';
                             placeholder="Ex. Pâtes, Plats indiens" aria-describedby="name-hint name-suggest"
                             value="<?= h($old['name']) ?>" data-counter data-category-name>
                         <p class="field__hint" id="name-hint">Un ou deux mots, au pluriel.</p>
+                        <p class="field__notice">
+                            Une catégorie est un <strong>type de plat</strong> (Sushis, Kebabs, Pâtes…), pas un régime ni un critère
+                            (Vegan, Épicé, Pas cher) : un plat n’a qu’une catégorie, et ses duels opposent des plats comparables.
+                        </p>
                         <p class="category-suggest" id="name-suggest" role="status" aria-live="polite" data-category-suggest></p>
                     </div>
 
@@ -143,7 +164,7 @@ require_once __DIR__ . '/../includes/header.php';
 
             <div class="create-form__actions">
                 <a class="btn btn--ghost" href="<?= $return === 'plat' ? '/plat/creer' : '/' ?>">Annuler</a>
-                <button class="btn btn--primary" type="submit" data-submit-label="Création…">Créer la catégorie</button>
+                <button class="btn btn--primary" type="submit" data-submit-label="Envoi…"><?= $isAdmin ? 'Créer la catégorie' : 'Proposer la catégorie' ?></button>
             </div>
         </form>
     <?php endif ?>
