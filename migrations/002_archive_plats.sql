@@ -15,7 +15,13 @@ ALTER TABLE dishes
 
 -- Source unique des plats visibles : toutes les lectures publiques passent par cette vue,
 -- pour qu'un oubli de filtre ne fasse jamais réapparaître un plat archivé.
-CREATE OR REPLACE VIEW active_dishes AS
-    SELECT * FROM dishes WHERE archived_at IS NULL;
+-- Créée seulement si elle n'existe pas : la migration 004 la redéfinit (filtre de modération),
+-- rejouer celle-ci ne doit pas l'écraser.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'active_dishes') THEN
+        CREATE VIEW active_dishes AS SELECT * FROM dishes WHERE archived_at IS NULL;
+    END IF;
+END $$;
 
 COMMIT;
