@@ -22,7 +22,7 @@ class Battle
             "SELECT d.id, d.name, d.description, d.picture, d.price,
                     e.name AS restaurant, e.city,
                     (SELECT COUNT(*) FROM user_battle_votes v WHERE v.dish_choice_id = d.id) AS votes
-             FROM dishes d
+             FROM active_dishes d -- plats archivés exclus des duels
              JOIN dish_categories dc ON dc.dish_id = d.id
              JOIN categories c ON c.id = dc.category_id
              LEFT JOIN establishments e ON e.id = d.establishment_id
@@ -149,5 +149,36 @@ class Battle
     private static function pairKey(int $a, int $b): string
     {
         return min($a, $b) . '-' . max($a, $b);
+    }
+
+    /** Un duel libre (hors tournoi), avec ses deux plats et ses votes. */
+    public function findFree(int $id): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT b.*, d1.name AS a_name, d2.name AS b_name,
+                    (SELECT COUNT(*) FROM user_battle_votes v WHERE v.battle_id = b.id) AS votes
+             FROM battles b
+             JOIN dishes d1 ON d1.id = b.dish_1_id
+             JOIN dishes d2 ON d2.id = b.dish_2_id
+             WHERE b.id = ? AND b.tournament_id IS NULL'
+        );
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Supprime un duel libre sans vote. La condition est dans la requête elle-même :
+     * si un vote arrive entre l'affichage et la confirmation, rien n'est supprimé.
+     * Retourne false si le duel a des votes (ou n'existe plus).
+     */
+    public function deleteFree(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM battles b
+             WHERE b.id = ? AND b.tournament_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM user_battle_votes v WHERE v.battle_id = b.id)'
+        );
+        $stmt->execute([$id]);
+        return $stmt->rowCount() === 1;
     }
 }

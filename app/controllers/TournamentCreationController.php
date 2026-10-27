@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../models/Tournament.php';
+require_once __DIR__ . '/../includes/manage.php';
 
 /**
  * GET/POST /tournoi/creer : un tournoi réunit 4 duels libres de l'utilisateur,
@@ -125,5 +126,66 @@ class TournamentCreationController
         $quarters = self::QUARTERS;
         $title = 'Créer un tournoi';
         require __DIR__ . '/../views/createtournament.php';
+    }
+
+    /**
+     * GET/POST /tournoi/{id}/modifier.
+     * Le nom reste modifiable ; la date seulement tant que le tournoi n'a ni commencé ni reçu de vote.
+     * Les quarts ne se changent pas : supprimer et recréer le tournoi tant qu'il est à venir.
+     */
+    public function edit(int $id): void
+    {
+        $tournaments = new Tournament($this->db);
+        $tournament = load_managed($tournaments->findWithStats($id));
+        $return = safe_return($_GET['retour'] ?? $_POST['retour'] ?? null, '/dashboard?onglet=tournois');
+        $dateEditable = tournament_date_editable($tournament);
+        $today = date('Y-m-d');
+
+        $errors = [];
+        $old = ['name' => $tournament['name'], 'start_date' => $tournament['start_date']];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_post();
+
+            $old['name'] = trim((string) ($_POST['name'] ?? ''));
+            if ($old['name'] === '') {
+                $errors[] = 'Donne un nom au tournoi.';
+            } elseif (mb_strlen($old['name']) > self::NAME_MAX) {
+                $errors[] = 'Le nom ne doit pas dépasser ' . self::NAME_MAX . ' caractères.';
+            }
+
+            if ($dateEditable) {
+                $old['start_date'] = (string) ($_POST['start_date'] ?? '');
+                $start = DateTimeImmutable::createFromFormat('!Y-m-d', $old['start_date']);
+                if (!$start || $start->format('Y-m-d') !== $old['start_date']) {
+                    $errors[] = 'La date de début est invalide.';
+                } elseif ($old['start_date'] <= $today) {
+                    $errors[] = 'Choisis une date à partir de demain : un tournoi qui commence aujourd’hui est déjà lancé.';
+                }
+            }
+
+            if (!$errors) {
+                $tournaments->rename($id, $old['name']);
+                if ($dateEditable && $old['start_date'] !== $tournament['start_date']) {
+                    $tournaments->reschedule($id, $old['start_date']);
+                }
+                flash_set('Le tournoi « ' . $old['name'] . ' » a été modifié.');
+                header('Location: ' . $return, true, 303);
+                exit;
+            }
+        }
+
+        $quarters = self::QUARTERS;
+        $title = 'Modifier ' . $tournament['name'];
+        require __DIR__ . '/../views/edittournament.php';
+    }
+
+    /** GET (confirmation) / POST /tournoi/{id}/supprimer : seulement s'il n'a pas commencé et n'a aucun vote. */
+    public function delete(int $id): void
+    {
+        $tournaments = new Tournament($this->db);
+        $tournament = load_managed($tournaments->findWithStats($id));
+
+        handle_deletion('tournoi', $tournament, $tournament['name'], static fn(): bool => $tournaments->delete($id));
     }
 }
