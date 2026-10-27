@@ -2,6 +2,11 @@ FoodBattle — Prototype local
 Prérequis : Docker avec Compose. Copier .env.example vers .env si besoin.
 Lancer : docker compose up --build
 Ouvrir : http://localhost:8080
-Arrêter : docker compose down -v
-Les données persistent dans le volume Docker. Le script SQL est exécuté uniquement sur une base vide.
+Arrêter : docker compose down        (sans -v : -v SUPPRIME la base et toutes ses données)
+Les données persistent dans le volume Docker. Les scripts SQL de migrations/ ne s'exécutent
+automatiquement que sur une base vide (premier lancement, ou après un down -v volontaire).
+Base existante : appliquer chaque nouvelle migration une fois, par exemple (PowerShell) :
+  Get-Content -Raw migrations/005_tournament_runs.sql | docker compose exec -T db psql -U foodbattle -d foodbattle
+Un changement de schéma = un nouveau fichier migrations/00X_….sql (jamais une modification d'init.sql).
+Premier administrateur : docker compose exec app php bin/make-admin.php email@exemple.fr
 Données fictives. Images d’illustration servies par Pexels ; connexion Internet nécessaire pour les photographies.
