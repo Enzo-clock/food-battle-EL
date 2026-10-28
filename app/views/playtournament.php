@@ -147,8 +147,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php if ($resultTotal > 1): ?>
                             <?php // Largeur bornée à 15–85 % pour que les deux libellés restent lisibles (comme sur la page duel). ?>
                             <div class="duel-bar" style="--pct-a: <?= max(15, min(85, $pctA)) ?>%">
-                                <span class="duel-bar__a">A · <?= $pctA ?> %</span>
-                                <span class="duel-bar__b"><?= $pctB ?> % · B</span>
+                                <span class="duel-bar__a"><?= $pctA ?> % · <?= h($duel[0]['name']) ?> </span>
+                                <span class="duel-bar__b"><?= h($duel[1]['name']) ?> · <?= $pctB ?> %</span>
                             </div>
                         <?php endif ?>
                         <div class="duel-result__foot">
@@ -194,13 +194,6 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php endforeach ?>
             </div>
 
-            <?php if (!$champion): ?>
-                <div class="box duel-keys">
-                    <h2 class="duel-side__title">Raccourcis</h2>
-                    <p><kbd>←</kbd> plat A · <kbd>→</kbd> plat B</p>
-                    <p><kbd>Entrée</kbd> match suivant</p>
-                </div>
-            <?php endif ?>
         </aside>
     </div>
 <?php endif ?>
