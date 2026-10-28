@@ -8,6 +8,7 @@
                                                       13. Création de tournoi (/tournoi/creer)
                                                       14. Modifier / supprimer (CRUD, back-office)
                                                       15. Jouer un tournoi (/play/tournament)
+                                                      16. Classements (/classements)
 
    Chaque section contient ses propres règles responsive à sa fin,
    pour qu'on n'ait jamais à chercher une même règle à deux endroits.
@@ -188,6 +189,12 @@ a:hover {
     /* empêche le logo d'être écrasé par le flex du header */
 }
 
+/* --- Header : navigation (gauche) · action principale et compte (droite) ---- */
+
+.site-header__inner {
+    gap: 12px 24px;
+}
+
 .site-nav {
     display: flex;
     flex-wrap: wrap;
@@ -195,40 +202,179 @@ a:hover {
     gap: 6px;
 }
 
-.site-nav>a:not(.btn) {
-    padding: 8px 14px;
+.site-nav a,
+.site-actions__login {
+    padding: 8px 16px;
     border: 2px solid transparent;
     border-radius: var(--radius-pill);
     font-weight: 600;
     text-decoration: none;
 }
 
-.site-nav>a[aria-current="page"] {
+.site-nav a:hover,
+.site-actions__login:hover {
+    border-color: var(--ink);
+}
+
+.site-nav a[aria-current="page"],
+.site-actions__login[aria-current="page"] {
     border-color: var(--ink);
     background: var(--yellow);
 }
 
-.site-nav__user {
-    font-weight: 600;
+/* le groupe de droite est poussé au bout de la ligne */
+.site-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
-.site-nav__logout {
+/* --- Menu du compte (<details>) -------------------------------------------- */
+
+.account {
+    position: relative;
+    margin: 0; /* neutralise la marge des <details> des pages héritées */
+}
+
+/* la pastille : initiale + pseudo + flèche, un vrai bouton (et non plus un simple « Salut … ! ») */
+.account__chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px 0 4px;
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+
+/* retire le triangle natif de <summary> (Chrome/Firefox, puis Safari) */
+.account__chip::-webkit-details-marker {
+    display: none;
+}
+
+.account__chip:hover {
+    transform: translate(-2px, -2px);
+}
+
+.account[open] .account__chip {
+    background: var(--yellow);
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+}
+
+.account__avatar {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--teal);
+    font-weight: 800;
+}
+
+.account__name {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account__caret {
+    flex: none;
+    transition: transform .15s ease;
+}
+
+.account[open] .account__caret {
+    transform: rotate(180deg);
+}
+
+.account__menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    z-index: 40; /* au-dessus du dock (30) */
+    width: 260px;
+    max-width: calc(100vw - 2 * var(--gutter));
+    padding: 8px;
+    background: var(--white);
+    border: var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.account__who {
+    margin-bottom: 6px;
+    padding: 8px 12px 12px;
+    border-bottom: 2px solid #EDE6D6;
+    font-size: 13px;
+}
+
+.account__who strong {
+    display: block;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.account__logout {
     margin: 0;
 }
 
-/* Bouton qui ressemble à un lien de la nav */
-.link-btn {
-    padding: 8px 14px;
+/* trait de séparation seulement s'il y a un lien au-dessus (le back-office, pour l'admin) */
+.account__item + .account__logout {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 2px solid #EDE6D6;
+}
+
+/* liens et bouton du menu : même apparence, grande cible de clic */
+.account__item {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
     border: 0;
+    border-radius: 10px;
     background: none;
+    color: var(--ink);
     font: inherit;
     font-weight: 600;
-    color: var(--ink);
+    text-align: left;
+    text-decoration: none;
     cursor: pointer;
 }
 
-.link-btn:hover {
-    text-decoration: underline;
+.account__item:hover,
+.account__item[aria-current="page"] {
+    background: var(--cream);
+}
+
+/* la déconnexion, isolée en bas et en rouge : on ne la déclenche pas par erreur */
+.account__item--out {
+    color: var(--danger);
+}
+
+.account__tag {
+    padding: 0 8px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--lilac);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
 .site-main {
@@ -286,15 +432,36 @@ a:hover {
 
 @media (max-width: 700px) {
 
-    /* le bouton « Jouer » est porté par le hero et le dock */
-    .site-nav .btn {
+    /* ligne 1 : logo + compte ; ligne 2 : la navigation, sur toute la largeur */
+    .site-header__inner {
+        gap: 10px 12px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .site-nav {
+        order: 3;
+        flex-basis: 100%;
+    }
+
+    .site-actions {
+        gap: 8px;
+    }
+
+    /* invité : « Connexion » reste, « Jouer » est porté par le hero de l'accueil (la ligne du logo est trop courte pour les deux) ;
+       connecté : « Jouer » est déjà dans le dock du bas */
+    .site-actions .site-actions__play {
         display: none;
     }
 
-    /* la nav est déjà pleine sur mobile : l'inscription reste accessible depuis la page Connexion */
-    .site-nav__signup,
-    .site-nav__user {
+    /* la pastille se réduit à l'initiale (le pseudo reste lu par les lecteurs d'écran via aria-label) */
+    .account__name {
         display: none;
+    }
+
+    .account__chip {
+        gap: 6px;
+        padding-right: 8px;
     }
 
     .section {
@@ -594,6 +761,7 @@ tr:last-child td {
 
 @media (prefers-reduced-motion: reduce) {
 
+    .account__chip:hover,
     .btn:hover,
     .button:hover,
     .chip:hover,
@@ -1221,6 +1389,9 @@ tr:last-child td {
     align-items: center;
     padding: 0 16px;
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .duel-bar__a {
@@ -4680,5 +4851,285 @@ details>summary {
 @media (prefers-reduced-motion: reduce) {
     .confetti {
         display: none;
+    }
+}
+
+/* ==========================================================================
+   16. Classements (/classements)
+   En-tête de la page duel, pastilles et podium de l'accueil,
+   puis une liste de lignes au même style que les cartes du site.
+   ========================================================================== */
+
+.rank-head .btn svg {
+    flex: none;
+}
+
+.rank-chips {
+    margin: 0 0 32px;
+}
+
+.rank {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.rank__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+}
+
+.rank__title {
+    font-size: clamp(30px, 4vw, 40px);
+    text-transform: uppercase;
+}
+
+.rank__meta {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* --- Podium (reprend .podium de l'accueil) --------------------------------- */
+
+.rank-podium .podium__card {
+    align-items: flex-start;
+}
+
+/* marches plus basses que sur l'accueil : le podium ne doit pas cacher la suite du classement */
+.rank-podium .podium__step {
+    font-size: 44px;
+}
+
+.rank-podium .podium__item--1 .podium__step {
+    height: 120px;
+}
+
+.rank-podium .podium__item--2 .podium__step {
+    height: 88px;
+}
+
+.rank-podium .podium__item--3 .podium__step {
+    height: 64px;
+}
+
+.rank-podium .podium__card strong {
+    line-height: 1.2;
+}
+
+.rank-podium__score {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* --- Suite du classement : le tableau (reprend le composant table du site) ---- */
+
+.rank-table {
+    margin: 0;
+}
+
+.rank-table th,
+.rank-table td {
+    vertical-align: middle;
+}
+
+/* l'en-tête de ligne (le plat) garde le fond blanc des cellules */
+.rank-table tbody th {
+    background: var(--white);
+    font-size: inherit;
+    text-transform: none;
+    border-bottom: 2px solid #EDE6D6;
+}
+
+.rank-table tbody tr:last-child th {
+    border-bottom: none;
+}
+
+.rank-table__num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.rank-table td.rank-table__num strong {
+    font-size: 18px;
+}
+
+.rank-table__pos {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border);
+    border-radius: 50%;
+    background: var(--cream);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.rank-table__dish {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.rank-table__dish img {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: var(--border);
+    border-radius: 12px;
+}
+
+.rank-table__dish > span {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.rank-table__dish strong {
+    font-size: 16px;
+    line-height: 1.25;
+}
+
+.rank-table__dish small {
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.rank-table__compact {
+    display: none;
+}
+
+.rank-table__sub {
+    display: block;
+    font-size: 12px;
+}
+
+/* libellés d'en-tête courts, utilisés seulement sur mobile */
+.rank-table__short {
+    display: none;
+}
+
+/* --- Explication du score -------------------------------------------------- */
+
+.rank-help {
+    margin-top: 40px;
+    padding: 0;
+    background: var(--lemon);
+    box-shadow: var(--shadow-sm);
+}
+
+.rank-help summary {
+    padding: 16px 24px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.rank-help__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 24px 22px;
+    max-width: 75ch;
+}
+
+.rank-help__scale {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.rank-help__scale li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.rank-help__scale .tag {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 800;
+}
+
+@media (max-width: 700px) {
+    .rank-chips {
+        margin-bottom: 24px;
+    }
+
+    /* le tableau tient à l'écran : tournois et participations passent sous le nom du plat */
+    .rank-table {
+        display: table;
+        overflow: visible;
+    }
+
+    .rank-table__extra {
+        display: none;
+    }
+
+    .rank-table__compact {
+        display: block;
+    }
+
+    .rank-table__long,
+    .rank-table__sub {
+        display: none;
+    }
+
+    .rank-table__short {
+        display: inline;
+    }
+
+    .rank-table td.rank-table__num strong {
+        font-size: 16px;
+    }
+
+    .rank-table th,
+    .rank-table td {
+        padding: 10px 8px;
+    }
+
+    .rank-table th:first-child,
+    .rank-table td:first-child {
+        padding-left: 12px;
+    }
+
+    .rank-table th:last-child,
+    .rank-table td:last-child {
+        padding-right: 12px;
+    }
+
+    .rank-table__dish {
+        gap: 10px;
+    }
+
+    /* la photo est déjà sur le podium : ici on garde toute la largeur pour le nom */
+    .rank-table__dish img {
+        display: none;
+    }
+
+    .rank-table__pos {
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .rank-help summary {
+        padding: 14px 18px;
+    }
+
+    .rank-help__body {
+        padding: 0 18px 18px;
     }
 }
