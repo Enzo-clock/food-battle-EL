@@ -7,9 +7,7 @@ require_once __DIR__ . '/../includes/manage.php';
 
 class BattleCreationController
 {
-    public function __construct(private PDO $db)
-    {
-    }
+    public function __construct(private PDO $db) {}
 
     public function create(): void
     {
@@ -119,6 +117,14 @@ class BattleCreationController
             ) {
                 $errors[] = 'Choisis deux plats différents qui partagent une catégorie.';
             } else {
+                $battles = new Battle($this->db);
+                $userId = (int) $_SESSION['user_id'];
+
+                if ($battles->freeCreatedBy($selectedA, $selectedB, $userId)) {
+                    $_SESSION['duel_error'] = 'Tu as déjà créé ce duel.';
+                } else {
+                    $battles->findOrCreateFree($selectedA, $selectedB, $userId);
+                }
                 $battleId = (new Battle($this->db))->findOrCreateFree(
                     $selectedA,
                     $selectedB,
