@@ -9,6 +9,8 @@ services:
       DB_NAME: foodbattle
       DB_USER: foodbattle
       DB_PASSWORD: foodbattle_local
+      APP_ENV: ${APP_ENV:-development}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     volumes:
       - .:/var/www/html
     depends_on:
