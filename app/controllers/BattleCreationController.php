@@ -119,29 +119,26 @@ class BattleCreationController
             } else {
                 $battles = new Battle($this->db);
                 $userId = (int) $_SESSION['user_id'];
+                $existing = $battles->findFreePair($selectedA, $selectedB);
+                $pair = '« ' . $dishA['name'] . ' » contre « ' . $dishB['name'] . ' »';
 
-                if ($battles->freeCreatedBy($selectedA, $selectedB, $userId)) {
-                    $_SESSION['duel_error'] = 'Tu as déjà créé ce duel.';
-                } else {
+                // Une paire de plats = un seul duel libre, partagé par tous (les votes s'additionnent).
+                // Trois cas, chacun avec son message : nouveau duel, déjà créé par toi, déjà créé par un autre.
+                if ($existing === null) {
                     $battles->findOrCreateFree($selectedA, $selectedB, $userId);
+                    flash_set('Duel créé : ' . $pair . '. Il est déjà jouable par tout le monde.');
+                } elseif ((int) $existing['creator_id'] === $userId) {
+                    flash_set('Tu as déjà créé ce duel : ' . $pair . '.', 'pending');
+                } else {
+                    flash_set(
+                        'Ce duel existe déjà : ' . $pair . ', créé par ' . $existing['creator']
+                        . '. Il reste jouable, mais il ne compte pas parmi tes duels (ni pour tes tournois).',
+                        'pending'
+                    );
                 }
-                $battleId = (new Battle($this->db))->findOrCreateFree(
-                    $selectedA,
-                    $selectedB,
-                    (int) $_SESSION['user_id']
-                );
 
-                header(
-                    'Location: /duel?' . http_build_query([
-                        'categorie' => $category !== ''
-                            ? $category
-                            : (string) reset($sharedCategories),
-                        'a' => $selectedA,
-                        'b' => $selectedB,
-                    ]),
-                    true,
-                    303
-                );
+                // PRG : retour au dashboard, onglet des duels, où le message s'affiche
+                header('Location: /dashboard?onglet=duels', true, 303);
                 exit;
             }
         }
