@@ -130,7 +130,7 @@ function filter_url(string $category, string $q): string
     <section class="section" aria-labelledby="podium-title">
         <div class="section__head">
             <h2 id="podium-title" class="section__title">Le podium</h2>
-            <a class="link-strong" href="/classement.php">Classement complet →</a>
+            <a class="link-strong" href="/classements">Classement complet →</a>
         </div>
         <ol class="podium">
             <?php foreach ($podium as $i => $d): ?>

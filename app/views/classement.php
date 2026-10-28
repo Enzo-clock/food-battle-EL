@@ -1,24 +1,69 @@
-<?php $title = 'Classement';
-require 'includes/header.php';
-require 'includes/db.php';
-$rows = $db->query('SELECT d.id,d.name,d.category,e.name AS restaurant, (SELECT COUNT(*) FROM votes WHERE dish_id=d.id) AS votes,(SELECT AVG(score) FROM ratings WHERE dish_id=d.id) AS average FROM dishes d JOIN establishments e ON e.id=d.establishment_id ORDER BY votes ASC,d.id LIMIT 10')->fetchAll(); ?>
-<h1>Le top street food</h1>
-<p>Les 10 plats qui ont reçu le plus de votes. À toi de faire bouger le classement !</p>
-<table>
-    <thead>
-        <tr>
-            <th>Rang</th>
-            <th>Plat</th>
-            <th>Établissement</th>
-            <th>Votes</th>
-            <th>Note /5</th>
-        </tr>
-    </thead>
-    <tbody><?php foreach ($rows as $i => $d): ?><tr>
-                <td>#<?= $i + 1 ?></td>
-                <td><a href="/plat.php?id=<?= $d['id'] ?>"><?= h($d['name']) ?></a></td>
-                <td><?= h($d['restaurant']) ?></td>
-                <td><?= $d['votes'] ?></td>
-                <td><?= number_format((float)$d['average'], 1, ',', '') ?></td>
-            </tr><?php endforeach ?></tbody>
-</table><?php require 'includes/footer.php'; ?>
+<?php
+/** @var array $categories */
+require_once __DIR__ . '/../includes/header.php';
+?>
+
+<section class="section" aria-labelledby="classements-title">
+    <h1 id="classements-title" class="section__title">Classements</h1>
+    <p>
+        Les plats sont classés selon la moyenne de leurs scores dans les tournois
+        terminés de leur catégorie. Chaque tournoi compte autant que les autres.
+    </p>
+
+    <?php if ($categories === []): ?>
+        <p class="message" role="status">
+            Aucun classement n’est disponible pour le moment. Une catégorie apparaîtra
+            dès qu’un de ses tournois aura au moins une participation terminée.
+        </p>
+    <?php else: ?>
+        <?php foreach ($categories as $category): ?>
+            <section aria-labelledby="categorie-<?= (int) $category['id'] ?>">
+                <h2
+                    id="categorie-<?= (int) $category['id'] ?>"
+                    class="section__title"
+                >
+                    <?= h($category['name']) ?>
+                </h2>
+
+                <table>
+                    <caption>
+                        Classement des plats de la catégorie <?= h($category['name']) ?>
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Rang</th>
+                            <th scope="col">Plat</th>
+                            <th scope="col">Score moyen</th>
+                            <th scope="col">Tournois pris en compte</th>
+                            <th scope="col">Participations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($category['dishes'] as $index => $dish): ?>
+                            <tr>
+                                <td><?= $index + 1 ?></td>
+                                <th scope="row"><?= h($dish['name']) ?></th>
+                                <td>
+                                    <?= number_format(
+                                        $dish['average_score'],
+                                        2,
+                                        ',',
+                                        ' '
+                                    ) ?>
+                                </td>
+                                <td>
+                                    <?= (int) $dish['tournament_count'] ?>
+                                </td>
+                                <td>
+                                    <?= (int) $dish['participation_count'] ?>
+                                </td>
+                            </tr>
+                        <?php endforeach ?>
+                    </tbody>
+                </table>
+            </section>
+        <?php endforeach ?>
+    <?php endif ?>
+</section>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

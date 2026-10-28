@@ -165,6 +165,30 @@ VALUES
         'seed@foodbattle.local',
         '!disabled-seed-account!',
         'admin'
+    ),
+    (
+        'enzOOO',
+        'Go',
+        'Enzo',
+        'enzo@gmail.com',
+        '$2y$10$5OyZrp1xNI8I/rgFP2X5puiTftk.v984QeW8ewmMyN5LDSvKUn4LW',
+        'user'
+    ),
+    (
+        'classement-test-1',
+        'Test',
+        'Classement 1',
+        'classement-test-1@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'classement-test-2',
+        'Test',
+        'Classement 2',
+        'classement-test-2@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
     );
 
 INSERT INTO
@@ -523,6 +547,641 @@ VALUES
     (34, 3),
     (35, 3),
     (36, 3);
+
+-- Sélectionne les 8 premiers plats de chaque catégorie, par identifiant.
+CREATE TEMP TABLE demo_dishes ON COMMIT
+DROP AS
+SELECT
+    category_slug,
+    dish_id,
+    seed
+FROM
+    (
+        SELECT
+            c.slug AS category_slug,
+            d.id AS dish_id,
+            CAST(
+                ROW_NUMBER() OVER (
+                    PARTITION BY
+                        c.slug
+                    ORDER BY
+                        d.id
+                ) AS SMALLINT
+            ) AS seed
+        FROM
+            categories c
+            JOIN dish_categories dc ON dc.category_id = c.id
+            JOIN dishes d ON d.id = dc.dish_id
+        WHERE
+            c.slug IN ('burger', 'pizza', 'tacos')
+    ) ranked
+WHERE
+    seed <= 8;
+
+-- Attribue ces 24 plats à enzOOO.
+UPDATE dishes d
+SET
+    creator_id = u.id
+FROM
+    users u
+WHERE
+    u.username = 'enzOOO'
+    AND d.id IN (
+        SELECT
+            dish_id
+        FROM
+            demo_dishes
+    );
+
+-- Crée les 12 battles libres : les plats 1-2, 3-4, 5-6 et 7-8 de chaque catégorie.
+CREATE TEMP TABLE demo_battles ON COMMIT
+DROP AS
+WITH
+    pairs AS (
+        SELECT
+            d1.category_slug,
+            CAST((d1.seed + 1) / 2 AS SMALLINT) AS position,
+            d1.dish_id AS dish_1_id,
+            d2.dish_id AS dish_2_id
+        FROM
+            demo_dishes d1
+            JOIN demo_dishes d2 ON d2.category_slug = d1.category_slug
+            AND d2.seed = d1.seed + 1
+        WHERE
+            d1.seed IN (1, 3, 5, 7)
+    ),
+    inserted AS (
+        INSERT INTO
+            battles (
+                creator_id,
+                tournament_id,
+                phase,
+                position,
+                battle_date,
+                dish_1_id,
+                dish_2_id
+            )
+        SELECT
+            u.id,
+            NULL,
+            NULL,
+            NULL,
+            CURRENT_DATE,
+            p.dish_1_id,
+            p.dish_2_id
+        FROM
+            pairs p
+            CROSS JOIN users u
+        WHERE
+            u.username = 'enzOOO' RETURNING id,
+            dish_1_id,
+            dish_2_id
+    )
+SELECT
+    p.category_slug,
+    p.position,
+    i.id AS battle_id,
+    p.dish_1_id,
+    p.dish_2_id
+FROM
+    pairs p
+    JOIN inserted i ON i.dish_1_id = p.dish_1_id
+    AND i.dish_2_id = p.dish_2_id;
+
+-- Crée les trois tournois et conserve leur correspondance avec les catégories.
+CREATE TEMP TABLE demo_tournaments (
+    category_slug VARCHAR(20) PRIMARY KEY,
+    tournament_id INTEGER NOT NULL
+) ON COMMIT
+DROP;
+
+WITH
+    tournament_definitions (category_slug, name) AS (
+        VALUES
+            ('burger', 'Tournoi burgers enzOOO'),
+            ('pizza', 'Tournoi pizzas enzOOO'),
+            ('tacos', 'Tournoi tacos enzOOO')
+    ),
+    inserted AS (
+        INSERT INTO
+            tournaments (name, start_date, creator_id)
+        SELECT
+            td.name,
+            CURRENT_DATE + 1,
+            u.id
+        FROM
+            tournament_definitions td
+            CROSS JOIN users u
+        WHERE
+            u.username = 'enzOOO' RETURNING id,
+            name
+    )
+INSERT INTO
+    demo_tournaments (category_slug, tournament_id)
+SELECT
+    td.category_slug,
+    i.id
+FROM
+    tournament_definitions td
+    JOIN inserted i ON i.name = td.name;
+
+-- Enregistre les 8 plats de chaque tournoi, avec leurs têtes de série.
+INSERT INTO
+    tournament_dishes (tournament_id, dish_id, seed)
+SELECT
+    t.tournament_id,
+    d.dish_id,
+    d.seed
+FROM
+    demo_tournaments t
+    JOIN demo_dishes d ON d.category_slug = t.category_slug;
+
+-- Copie les 4 battles de chaque catégorie dans les quarts de finale du tournoi correspondant.
+INSERT INTO
+    battles (
+        creator_id,
+        tournament_id,
+        phase,
+        position,
+        battle_date,
+        dish_1_id,
+        dish_2_id
+    )
+SELECT
+    u.id,
+    t.tournament_id,
+    'quarter',
+    b.position,
+    CURRENT_DATE + b.position,
+    b.dish_1_id,
+    b.dish_2_id
+FROM
+    demo_battles b
+    JOIN demo_tournaments t ON t.category_slug = b.category_slug
+    CROSS JOIN users u
+WHERE
+    u.username = 'enzOOO';
+
+-- Crée une participation terminée pour chaque compte test dans chaque tournoi.
+INSERT INTO
+    tournament_runs (tournament_id, user_id, run_date, finished_at)
+SELECT
+    dt.tournament_id,
+    u.id,
+    CURRENT_DATE,
+    CURRENT_TIMESTAMP
+FROM
+    demo_tournaments dt
+    CROSS JOIN users u
+WHERE
+    u.username IN ('classement-test-1', 'classement-test-2');
+
+-- Enregistre les sept matchs de chaque participation terminée.
+-- Les scores ci-dessous sont les victoires du plat de tête de série 1.
+WITH
+    targets (username, category_slug, target_score) AS (
+        VALUES
+            ('classement-test-1', 'burger', 3),
+            ('classement-test-1', 'pizza', 2),
+            ('classement-test-1', 'tacos', 1),
+            ('classement-test-2', 'burger', 0),
+            ('classement-test-2', 'pizza', 1),
+            ('classement-test-2', 'tacos', 3)
+    ),
+    target_runs AS (
+        SELECT
+            tr.id AS run_id,
+            tr.tournament_id,
+            targets.target_score,
+            target_dish.dish_id AS target_dish_id
+        FROM
+            tournament_runs tr
+            JOIN users u ON u.id = tr.user_id
+            JOIN targets ON targets.username = u.username
+            JOIN demo_tournaments dt ON dt.tournament_id = tr.tournament_id
+            AND dt.category_slug = targets.category_slug
+            JOIN demo_dishes target_dish ON target_dish.category_slug = targets.category_slug
+            AND target_dish.seed = 1
+        WHERE
+            tr.run_date = CURRENT_DATE
+    ),
+    quarter_matches AS (
+        SELECT
+            tr.run_id,
+            tr.target_score,
+            tr.target_dish_id,
+            CAST('Q' || b.position AS VARCHAR(2)) AS slot,
+            b.dish_1_id,
+            b.dish_2_id,
+            CASE
+            -- Le plat test est en tête de série 1, donc il joue le quart Q1.
+                WHEN b.position = 1
+                AND tr.target_score >= 1 THEN tr.target_dish_id
+                WHEN b.position = 1
+                AND b.dish_1_id = tr.target_dish_id THEN b.dish_2_id
+                WHEN b.position = 1 THEN b.dish_1_id
+                -- Résultat déterministe pour les autres quarts.
+                ELSE b.dish_1_id
+            END AS dish_winner_id
+        FROM
+            target_runs tr
+            JOIN battles b ON b.tournament_id = tr.tournament_id
+            AND b.phase = 'quarter'
+    ),
+    quarter_winners AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q1'
+            ) AS q1_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q2'
+            ) AS q2_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q3'
+            ) AS q3_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q4'
+            ) AS q4_winner
+        FROM
+            quarter_matches
+        GROUP BY
+            run_id,
+            target_score,
+            target_dish_id
+    ),
+    semifinal_matches AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            CAST('D1' AS VARCHAR(2)) AS slot,
+            q1_winner AS dish_1_id,
+            q2_winner AS dish_2_id,
+            CASE
+                WHEN target_score >= 2 THEN target_dish_id
+                WHEN target_score = 1 THEN q2_winner
+                ELSE q1_winner
+            END AS dish_winner_id
+        FROM
+            quarter_winners
+        UNION ALL
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            CAST('D2' AS VARCHAR(2)) AS slot,
+            q3_winner AS dish_1_id,
+            q4_winner AS dish_2_id,
+            q3_winner AS dish_winner_id
+        FROM
+            quarter_winners
+    ),
+    semifinal_winners AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'D1'
+            ) AS d1_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'D2'
+            ) AS d2_winner
+        FROM
+            semifinal_matches
+        GROUP BY
+            run_id,
+            target_score,
+            target_dish_id
+    ),
+    final_matches AS (
+        SELECT
+            run_id,
+            CAST('F' AS VARCHAR(2)) AS slot,
+            d1_winner AS dish_1_id,
+            d2_winner AS dish_2_id,
+            CASE
+                WHEN target_score >= 3 THEN target_dish_id
+                WHEN target_score = 2 THEN d2_winner
+                ELSE d1_winner
+            END AS dish_winner_id
+        FROM
+            semifinal_winners
+    ),
+    all_matches AS (
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            quarter_matches
+        UNION ALL
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            semifinal_matches
+        UNION ALL
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            final_matches
+    )
+INSERT INTO
+    tournament_run_matches (
+        run_id,
+        slot,
+        dish_1_id,
+        dish_2_id,
+        dish_winner_id
+    )
+SELECT
+    run_id,
+    slot,
+    dish_1_id,
+    dish_2_id,
+    dish_winner_id
+FROM
+    all_matches;
+
+-- Crée un second tournoi de burgers.
+CREATE TEMP TABLE demo_second_burger_tournament (tournament_id INTEGER PRIMARY KEY) ON COMMIT
+DROP;
+
+WITH
+    inserted AS (
+        INSERT INTO
+            tournaments (name, start_date, creator_id)
+        SELECT
+            'Deuxième tournoi burgers enzOOO',
+            CURRENT_DATE + 2,
+            u.id
+        FROM
+            users u
+        WHERE
+            u.username = 'enzOOO' RETURNING id
+    )
+INSERT INTO
+    demo_second_burger_tournament (tournament_id)
+SELECT
+    id
+FROM
+    inserted;
+
+-- Inscrit les huit plats burgers et leurs têtes de série.
+INSERT INTO
+    tournament_dishes (tournament_id, dish_id, seed)
+SELECT
+    t.tournament_id,
+    d.dish_id,
+    d.seed
+FROM
+    demo_second_burger_tournament t
+    JOIN demo_dishes d ON d.category_slug = 'burger';
+
+-- Crée les quatre quarts de finale : seeds 1-2, 3-4, 5-6 et 7-8.
+INSERT INTO
+    battles (
+        creator_id,
+        tournament_id,
+        phase,
+        position,
+        battle_date,
+        dish_1_id,
+        dish_2_id
+    )
+SELECT
+    u.id,
+    t.tournament_id,
+    'quarter',
+    CAST((d1.seed + 1) / 2 AS SMALLINT),
+    CURRENT_DATE + CAST((d1.seed + 1) / 2 AS INTEGER),
+    d1.dish_id,
+    d2.dish_id
+FROM
+    demo_second_burger_tournament t
+    JOIN demo_dishes d1 ON d1.category_slug = 'burger'
+    AND d1.seed IN (1, 3, 5, 7)
+    JOIN demo_dishes d2 ON d2.category_slug = d1.category_slug
+    AND d2.seed = d1.seed + 1
+    JOIN users u ON u.username = 'enzOOO';
+
+-- Crée une participation terminée pour les trois comptes.
+INSERT INTO
+    tournament_runs (tournament_id, user_id, run_date, finished_at)
+SELECT
+    t.tournament_id,
+    u.id,
+    CURRENT_DATE,
+    CURRENT_TIMESTAMP
+FROM
+    demo_second_burger_tournament t
+    CROSS JOIN users u
+WHERE
+    u.username IN (
+        'enzOOO',
+        'classement-test-1',
+        'classement-test-2'
+    );
+
+-- Enregistre les sept matchs joués par chacun.
+-- Le score cible est le nombre de victoires du burger tête de série 1.
+WITH
+    targets (username, target_score) AS (
+        VALUES
+            ('enzOOO', 2),
+            ('classement-test-1', 1),
+            ('classement-test-2', 3)
+    ),
+    target_runs AS (
+        SELECT
+            tr.id AS run_id,
+            tr.tournament_id,
+            targets.target_score,
+            td.dish_id AS target_dish_id
+        FROM
+            tournament_runs tr
+            JOIN users u ON u.id = tr.user_id
+            JOIN targets ON targets.username = u.username
+            JOIN demo_second_burger_tournament t ON t.tournament_id = tr.tournament_id
+            JOIN tournament_dishes td ON td.tournament_id = tr.tournament_id
+            AND td.seed = 1
+        WHERE
+            tr.run_date = CURRENT_DATE
+            AND tr.finished_at IS NOT NULL
+    ),
+    quarter_matches AS (
+        SELECT
+            tr.run_id,
+            tr.target_score,
+            tr.target_dish_id,
+            CAST('Q' || b.position AS VARCHAR(2)) AS slot,
+            b.dish_1_id,
+            b.dish_2_id,
+            CASE
+                WHEN b.position = 1
+                AND tr.target_score >= 1 THEN tr.target_dish_id
+                WHEN b.position = 1
+                AND b.dish_1_id = tr.target_dish_id THEN b.dish_2_id
+                WHEN b.position = 1 THEN b.dish_1_id
+                ELSE b.dish_1_id
+            END AS dish_winner_id
+        FROM
+            target_runs tr
+            JOIN battles b ON b.tournament_id = tr.tournament_id
+            AND b.phase = 'quarter'
+    ),
+    quarter_winners AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q1'
+            ) AS q1_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q2'
+            ) AS q2_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q3'
+            ) AS q3_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'Q4'
+            ) AS q4_winner
+        FROM
+            quarter_matches
+        GROUP BY
+            run_id,
+            target_score,
+            target_dish_id
+    ),
+    semifinal_matches AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            CAST('D1' AS VARCHAR(2)) AS slot,
+            q1_winner AS dish_1_id,
+            q2_winner AS dish_2_id,
+            CASE
+                WHEN target_score >= 2 THEN target_dish_id
+                WHEN target_score = 1 THEN q2_winner
+                ELSE q1_winner
+            END AS dish_winner_id
+        FROM
+            quarter_winners
+        UNION ALL
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            CAST('D2' AS VARCHAR(2)) AS slot,
+            q3_winner AS dish_1_id,
+            q4_winner AS dish_2_id,
+            q3_winner AS dish_winner_id
+        FROM
+            quarter_winners
+    ),
+    semifinal_winners AS (
+        SELECT
+            run_id,
+            target_score,
+            target_dish_id,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'D1'
+            ) AS d1_winner,
+            MAX(dish_winner_id) FILTER (
+                WHERE
+                    slot = 'D2'
+            ) AS d2_winner
+        FROM
+            semifinal_matches
+        GROUP BY
+            run_id,
+            target_score,
+            target_dish_id
+    ),
+    final_matches AS (
+        SELECT
+            run_id,
+            CAST('F' AS VARCHAR(2)) AS slot,
+            d1_winner AS dish_1_id,
+            d2_winner AS dish_2_id,
+            CASE
+                WHEN target_score >= 3 THEN target_dish_id
+                WHEN target_score = 2 THEN d2_winner
+                ELSE d1_winner
+            END AS dish_winner_id
+        FROM
+            semifinal_winners
+    ),
+    all_matches AS (
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            quarter_matches
+        UNION ALL
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            semifinal_matches
+        UNION ALL
+        SELECT
+            run_id,
+            slot,
+            dish_1_id,
+            dish_2_id,
+            dish_winner_id
+        FROM
+            final_matches
+    )
+INSERT INTO
+    tournament_run_matches (
+        run_id,
+        slot,
+        dish_1_id,
+        dish_2_id,
+        dish_winner_id
+    )
+SELECT
+    run_id,
+    slot,
+    dish_1_id,
+    dish_2_id,
+    dish_winner_id
+FROM
+    all_matches;
 
 COMMIT;
 

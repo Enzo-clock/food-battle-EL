@@ -10,7 +10,7 @@ $navIsLogged = isset($_SESSION['user_id']);
 $navLinks = [
     '/'               => 'Accueil',
     /*'/duel'           => 'Duels',*/
-    '/classement.php' => 'Classement',
+    '/classements' => 'Classement',
 ];
 // Le dashboard liste les contenus de l'utilisateur : le lien n'apparaît qu'une fois connecté.
 if ($navIsLogged) {

@@ -149,6 +149,12 @@ if (
     exit;
 }
 
+if ($path === '/classements' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/RankingController.php';
+    (new RankingController($db))->index();
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',
