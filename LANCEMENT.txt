@@ -15,3 +15,5 @@ Base existante : appliquer chaque nouvelle migration une fois, par exemple (Powe
 Un changement de schéma = un nouveau fichier migrations/00X_….sql (jamais une modification d'init.sql).
 Premier administrateur : docker compose exec app php bin/make-admin.php email@exemple.fr
 Données fictives. Images d’illustration servies par Pexels ; connexion Internet nécessaire pour les photographies.
+Commande pour entrer dans la base SQL dans le terminal : 
+docker compose exec db psql -U foodbattle -d foodbattle
