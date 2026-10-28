@@ -3,6 +3,11 @@ Prérequis : Docker avec Compose. Copier .env.example vers .env si besoin.
 Lancer : docker compose up --build
 Ouvrir : http://localhost:8080
 Arrêter : docker compose down        (sans -v : -v SUPPRIME la base et toutes ses données)
+Interface graphique de la base (optionnelle) :
+  docker compose --profile adminer up --build
+  Ouvrir http://localhost:8081, puis choisir le système PostgreSQL.
+  Serveur : db | Utilisateur : foodbattle | Mot de passe : foodbattle_local | Base : foodbattle
+Adminer est réservé au développement local ; ne pas exposer son port en production.
 Les données persistent dans le volume Docker. Les scripts SQL de migrations/ ne s'exécutent
 automatiquement que sur une base vide (premier lancement, ou après un down -v volontaire).
 Base existante : appliquer chaque nouvelle migration une fois, par exemple (PowerShell) :
