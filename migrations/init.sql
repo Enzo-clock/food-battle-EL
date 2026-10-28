@@ -250,6 +250,7 @@ INSERT INTO
     dishes (
         name,
         description,
+        picture,
         price,
         creator_id,
         establishment_id
@@ -258,6 +259,7 @@ VALUES
     (
         'Le Double Smash',
         'Deux steaks, cheddar, pickles et sauce maison.',
+        'https://images.pexels.com/photos/31450815/pexels-photo-31450815.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.50,
         1,
         1
@@ -265,6 +267,7 @@ VALUES
     (
         'Le Jardin Fumé',
         'Galette de pois chiches, oignons et sauce fumée.',
+        'https://images.pexels.com/photos/35813486/pexels-photo-35813486.jpeg?auto=compress&cs=tinysrgb&w=800',
         11.00,
         1,
         1
@@ -272,6 +275,7 @@ VALUES
     (
         'Le Poulet Crunch',
         'Poulet croustillant, crudités et sauce citron.',
+        'https://images.pexels.com/photos/27978093/pexels-photo-27978093.jpeg?auto=compress&cs=tinysrgb&w=800',
         9.50,
         1,
         2
@@ -279,6 +283,7 @@ VALUES
     (
         'Le Veggie Tempo',
         'Haricots rouges, maïs et légumes grillés.',
+        'https://images.pexels.com/photos/8920125/pexels-photo-8920125.jpeg?auto=compress&cs=tinysrgb&w=800',
         8.90,
         1,
         2
@@ -286,6 +291,7 @@ VALUES
     (
         'La Margherita Club',
         'Tomate, mozzarella et basilic.',
+        'https://images.pexels.com/photos/17402717/pexels-photo-17402717.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.00,
         1,
         3
@@ -293,6 +299,7 @@ VALUES
     (
         'La Champi Party',
         'Champignons, mozzarella et persillade.',
+        'https://images.pexels.com/photos/6147822/pexels-photo-6147822.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.00,
         1,
         3
@@ -300,6 +307,7 @@ VALUES
     (
         'Le Nordiste',
         'Steak, fromage du Nord et oignons confits.',
+        'https://images.pexels.com/photos/29786254/pexels-photo-29786254.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.00,
         1,
         4
@@ -307,6 +315,7 @@ VALUES
     (
         'Le Classique',
         'Steak, salade, tomate et cheddar.',
+        'https://images.pexels.com/photos/30500751/pexels-photo-30500751.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.50,
         1,
         4
@@ -314,6 +323,7 @@ VALUES
     (
         'Le Trois Sauces',
         'Poulet, pommes de terre et trio de sauces.',
+        'https://images.pexels.com/photos/32538757/pexels-photo-32538757.jpeg?auto=compress&cs=tinysrgb&w=800',
         11.00,
         1,
         5
@@ -321,6 +331,7 @@ VALUES
     (
         'Le Piment Doux',
         'Légumes, bœuf et sauce légèrement épicée.',
+        'https://images.pexels.com/photos/5836435/pexels-photo-5836435.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.00,
         1,
         5
@@ -328,6 +339,7 @@ VALUES
     (
         'La Minuit',
         'Tomate, poivrons, olives et mozzarella.',
+        'https://images.pexels.com/photos/34382326/pexels-photo-34382326.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.00,
         1,
         6
@@ -335,6 +347,7 @@ VALUES
     (
         'La Quatre Fromages',
         'Quatre fromages et une pâte fine.',
+        'https://images.pexels.com/photos/27558299/pexels-photo-27558299.jpeg?auto=compress&cs=tinysrgb&w=800',
         14.00,
         1,
         6
@@ -342,6 +355,7 @@ VALUES
     (
         'Le Montagnard',
         'Steak, raclette, oignons caramélisés et sauce poivrée.',
+        'https://images.pexels.com/photos/18713424/pexels-photo-18713424.jpeg?auto=compress&cs=tinysrgb&w=800',
         14.50,
         1,
         1
@@ -349,6 +363,7 @@ VALUES
     (
         'Le BBQ Bacon',
         'Steak, bacon grillé, cheddar et sauce barbecue.',
+        'https://images.pexels.com/photos/31450819/pexels-photo-31450819.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.50,
         1,
         4
@@ -356,6 +371,7 @@ VALUES
     (
         'Le Chèvre Miel',
         'Steak, chèvre, miel et roquette.',
+        'https://images.pexels.com/photos/30774109/pexels-photo-30774109.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.00,
         1,
         1
@@ -363,6 +379,7 @@ VALUES
     (
         'Le Poulet Avocat',
         'Poulet grillé, avocat, salade et sauce yaourt.',
+        'https://images.pexels.com/photos/20404825/pexels-photo-20404825.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.50,
         1,
         4
@@ -370,6 +387,7 @@ VALUES
     (
         'Le Bleu du Nord',
         'Steak, fromage bleu, poire et oignons rouges.',
+        'https://images.pexels.com/photos/29786254/pexels-photo-29786254.jpeg?auto=compress&cs=tinysrgb&w=800',
         14.00,
         1,
         1
@@ -377,6 +395,7 @@ VALUES
     (
         'Le Crispy Veggie',
         'Galette de légumes croustillante, cheddar et sauce tartare.',
+        'https://images.pexels.com/photos/5639468/pexels-photo-5639468.jpeg?auto=compress&cs=tinysrgb&w=800',
         11.50,
         1,
         4
@@ -384,6 +403,7 @@ VALUES
     (
         'Le Double Bacon',
         'Deux steaks, bacon fumé, cheddar et sauce burger.',
+        'https://images.pexels.com/photos/3915915/pexels-photo-3915915.jpeg?auto=compress&cs=tinysrgb&w=800',
         15.00,
         1,
         1
@@ -391,6 +411,7 @@ VALUES
     (
         'Le Raclette',
         'Steak, fromage à raclette, pommes de terre et oignons.',
+        'https://images.pexels.com/photos/40223136/pexels-photo-40223136.jpeg?auto=compress&cs=tinysrgb&w=800',
         14.50,
         1,
         4
@@ -398,6 +419,7 @@ VALUES
     (
         'Le Tacos Andalou',
         'Poulet mariné, poivrons et sauce andalouse.',
+        'https://images.pexels.com/photos/36498701/pexels-photo-36498701.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.50,
         1,
         2
@@ -405,6 +427,7 @@ VALUES
     (
         'Le Tacos Curry',
         'Poulet, pommes de terre et sauce curry douce.',
+        'https://images.pexels.com/photos/39960350/pexels-photo-39960350.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.00,
         1,
         5
@@ -412,6 +435,7 @@ VALUES
     (
         'Le Tacos Mexicain',
         'Bœuf épicé, haricots rouges, maïs et salsa.',
+        'https://images.pexels.com/photos/32667556/pexels-photo-32667556.jpeg?auto=compress&cs=tinysrgb&w=800',
         11.50,
         1,
         2
@@ -419,6 +443,7 @@ VALUES
     (
         'Le Tacos Savoyard',
         'Poulet, lardons, pommes de terre et reblochon.',
+        'https://images.pexels.com/photos/14883828/pexels-photo-14883828.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.00,
         1,
         5
@@ -426,6 +451,7 @@ VALUES
     (
         'Le Tacos Falafel',
         'Falafels, crudités et sauce blanche aux herbes.',
+        'https://images.pexels.com/photos/15378370/pexels-photo-15378370.jpeg?auto=compress&cs=tinysrgb&w=800',
         9.50,
         1,
         2
@@ -433,6 +459,7 @@ VALUES
     (
         'Le Tacos Trois Fromages',
         'Poulet, emmental, cheddar et mozzarella.',
+        'https://images.pexels.com/photos/15911841/pexels-photo-15911841.jpeg?auto=compress&cs=tinysrgb&w=800',
         11.00,
         1,
         5
@@ -440,6 +467,7 @@ VALUES
     (
         'Le Tacos Kebab',
         'Viande kebab, salade, tomate et sauce algérienne.',
+        'https://images.pexels.com/photos/29306504/pexels-photo-29306504.jpeg?auto=compress&cs=tinysrgb&w=800',
         10.50,
         1,
         2
@@ -447,6 +475,7 @@ VALUES
     (
         'Le Tacos Montagnard',
         'Bœuf, pommes de terre, raclette et oignons confits.',
+        'https://images.pexels.com/photos/36498698/pexels-photo-36498698.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.50,
         1,
         5
@@ -454,6 +483,7 @@ VALUES
     (
         'La Reine',
         'Tomate, mozzarella, jambon et champignons.',
+        'https://images.pexels.com/photos/15611221/pexels-photo-15611221.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.50,
         1,
         3
@@ -461,6 +491,7 @@ VALUES
     (
         'La Végétarienne',
         'Tomate, mozzarella, courgettes, poivrons et olives.',
+        'https://images.pexels.com/photos/33592996/pexels-photo-33592996.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.00,
         1,
         6
@@ -468,6 +499,7 @@ VALUES
     (
         'La Diavola',
         'Tomate, mozzarella, salami piquant et piment.',
+        'https://images.pexels.com/photos/3682837/pexels-photo-3682837.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.00,
         1,
         3
@@ -475,6 +507,7 @@ VALUES
     (
         'La Poulet Barbecue',
         'Poulet grillé, mozzarella, oignons rouges et sauce barbecue.',
+        'https://images.pexels.com/photos/31300972/pexels-photo-31300972.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.50,
         1,
         6
@@ -482,6 +515,7 @@ VALUES
     (
         'La Nordique',
         'Crème, mozzarella, saumon fumé et aneth.',
+        'https://images.pexels.com/photos/30334387/pexels-photo-30334387.jpeg?auto=compress&cs=tinysrgb&w=800',
         15.00,
         1,
         3
@@ -489,6 +523,7 @@ VALUES
     (
         'La Prosciutto',
         'Tomate, mozzarella, jambon cru et roquette.',
+        'https://images.pexels.com/photos/5903102/pexels-photo-5903102.jpeg?auto=compress&cs=tinysrgb&w=800',
         14.00,
         1,
         6
@@ -496,6 +531,7 @@ VALUES
     (
         'La Forestière',
         'Crème, mozzarella, champignons et oignons.',
+        'https://images.pexels.com/photos/1552635/pexels-photo-1552635.jpeg?auto=compress&cs=tinysrgb&w=800',
         12.50,
         1,
         3
@@ -503,6 +539,7 @@ VALUES
     (
         'La Méditerranéenne',
         'Tomate, mozzarella, artichauts, olives et tomates séchées.',
+        'https://images.pexels.com/photos/5639971/pexels-photo-5639971.jpeg?auto=compress&cs=tinysrgb&w=800',
         13.00,
         1,
         6
