@@ -166,6 +166,22 @@ class Battle
         return $stmt->fetch() ?: null;
     }
 
+    /** Vérifie si un duel a déjà été créé par cet utilisateur. */
+    public function freeCreatedBy(int $dishA, int $dishB, int $creatorId): bool
+{
+    [$low, $high] = [min($dishA, $dishB), max($dishA, $dishB)];
+
+    $stmt = $this->db->prepare(
+        'SELECT 1 FROM battles
+         WHERE tournament_id IS NULL
+           AND dish_1_id = ? AND dish_2_id = ? AND creator_id = ?
+         LIMIT 1'
+    );
+    $stmt->execute([$low, $high, $creatorId]);
+
+    return $stmt->fetchColumn() !== false;
+}
+
     /**
      * Supprime un duel libre sans vote. La condition est dans la requête elle-même :
      * si un vote arrive entre l'affichage et la confirmation, rien n'est supprimé.

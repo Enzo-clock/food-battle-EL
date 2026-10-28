@@ -1,4 +1,6 @@
 <?php
+// SECURITY: le commentaire est fourni par un utilisateur. Ne jamais l'afficher
+// brut : échapper la sortie avec h() pour éviter une XSS stockée.
 $title = 'Le plat';
 require 'includes/header.php';
 require 'includes/db.php';

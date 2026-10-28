@@ -1,0 +1,9 @@
+# Ne pas inclure les fichiers d'environnement dans l'image Docker
+.env
+.env.*
+!.env.example
+
+# Fichiers Git et journaux inutiles dans l'image
+.git
+.gitignore
+*.log
