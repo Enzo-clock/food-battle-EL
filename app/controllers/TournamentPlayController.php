@@ -1,4 +1,9 @@
 <?php
+// filepath: app/controllers/TournamentPlayController.php
+//
+// « Jouer » : les tournois du jour. Chaque joueur remplit SON tableau, match après match
+// (4 quarts, 2 demies, la finale) ; ses vainqueurs avancent au tour suivant.
+// Après chaque match, on lui montre ce qu'ont choisi les autres joueurs.
 
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../models/TournamentRun.php';
@@ -7,41 +12,35 @@ class TournamentPlayController
 {
     public function __construct(private PDO $db) {}
 
-    /** GET /play/tournament */
+    /** GET /play/tournament : reprend le tournoi du jour en cours, au bon match. */
     public function index(): void
     {
         $userId = $this->requireUserId();
         $runs = new TournamentRun($this->db);
-        $tournament = $runs->nextForUser($userId);
+        $next = $runs->nextForUser($userId);
 
-        if ($tournament === null) {
+        if ($next === null) {
+            // Plus rien à jouer aujourd'hui (ou aucun tournoi complet) : état final de la page.
             $title = 'Tournois du jour';
-            $message = 'Tu as terminé les tournois du jour. Reviens demain !';
+            $dailyTotal = count($runs->dailyTournaments());
             $match = null;
-            $error = null;
-            $nextUrl = null;
-            $recap = [];
-            $tournament = null;
-            $resultTotal = 0;
-            $resultPercentages = [];
             require __DIR__ . '/../views/playtournament.php';
             return;
         }
 
-        $tournamentId = (int) $tournament['id'];
-        $runId = $tournament['run_id']
-            ?? $runs->start($tournamentId, $userId);
+        $tournamentId = (int) $next['id'];
+        $runId = $next['run_id'] ?? $runs->start($tournamentId, $userId);
         $slot = $runs->nextSlotForRun($runId, $userId);
 
         if ($slot === null) {
-            // Le run vient éventuellement d’être terminé dans un autre onglet.
+            // Partie terminée entre-temps (autre onglet) : on repasse par la sélection.
             $this->redirect('/play/tournament');
         }
 
         $this->redirect("/play/tournament/$tournamentId/$slot");
     }
 
-    /** GET /play/tournament/{id}/{slot} */
+    /** GET /play/tournament/{id}/{slot} : un match du tableau (à jouer, ou déjà joué avec son résultat). */
     public function show(int $tournamentId, string $slot): void
     {
         $userId = $this->requireUserId();
@@ -53,45 +52,47 @@ class TournamentPlayController
             $nextSlot = $runs->nextSlotForRun($runId, $userId);
             $match = $runs->currentMatch($runId, $slot, $userId);
         } catch (DomainException) {
-            $target = $nextSlot
-                ? "/play/tournament/$tournamentId/$nextSlot"
-                : '/play/tournament';
-            $this->redirect($target);
+            $this->redirect($nextSlot ? "/play/tournament/$tournamentId/$nextSlot" : '/play/tournament');
         }
 
         $this->randomizeSides($runId, $slot, $match);
 
-        $resultCounts = $match['dish_winner_id'] !== null
-            ? $runs->resultsForMatch($runId, $slot, $userId)
-            : [];
+        $tournament = $runs->info($tournamentId);
+        $bracket = $runs->bracket($runId, $tournamentId, $userId);
+        $played = $match['dish_winner_id'] !== null;
 
-        $resultTotal = array_sum($resultCounts);
+        // Ce qu'ont choisi les autres joueurs sur ce même match (même tournoi, même étape, même paire)
+        $resultTotal = 0;
         $resultPercentages = [];
-
-        foreach ([$match['dish_1_id'], $match['dish_2_id']] as $dishId) {
-            $resultPercentages[$dishId] = $resultTotal > 0
-                ? (int) round(($resultCounts[$dishId] ?? 0) * 100 / $resultTotal)
-                : 0;
+        $resultCounts = [];
+        if ($played) {
+            $counts = $resultCounts = $runs->resultsForMatch($runId, $slot, $userId);
+            $resultTotal = array_sum($counts);
+            foreach ([$match['dish_1_id'], $match['dish_2_id']] as $dishId) {
+                $resultPercentages[$dishId] = $resultTotal > 0 ? (int) round(($counts[$dishId] ?? 0) * 100 / $resultTotal) : 0;
+            }
         }
 
-        $tournament = [
-            'id' => $tournamentId,
-            'name' => 'Tournoi',
-        ];
+        // Après la finale : le champion, et combien de joueurs ont couronné le même
+        $champion = null;
+        $championShare = null;
+        $nextTournament = null;
+        if ($slot === 'F' && $played) {
+            foreach ($match['dishes'] as $dish) {
+                if ((int) $dish['id'] === (int) $match['dish_winner_id']) {
+                    $champion = $dish;
+                }
+            }
+            $championShare = $runs->championShare($tournamentId, (int) $match['dish_winner_id']);
+            $upcoming = $runs->nextForUser($userId);
+            $nextTournament = $upcoming ? $runs->info((int) $upcoming['id']) : null;
+        }
+
+        $nextUrl = $nextSlot ? "/play/tournament/$tournamentId/$nextSlot" : '/play/tournament';
         $error = $_SESSION['tournament_error'] ?? null;
         unset($_SESSION['tournament_error']);
 
-        $recap = ($slot === 'F' && $match['dish_winner_id'] !== null)
-            ? $runs->recap($runId, $userId)
-            : [];
-
-        $nextUrl = $nextSlot
-            ? "/play/tournament/$tournamentId/$nextSlot"
-            : '/play/tournament';
-
-        $title = 'Tournoi — ' . $slot;
-        $message = null;
-
+        $title = $tournament['name'] . ' · ' . TournamentRun::SLOT_LABELS[$slot];
         require __DIR__ . '/../views/playtournament.php';
     }
 
@@ -119,7 +120,8 @@ class TournamentPlayController
         }
 
         // PRG : le GET relit le match et son vainqueur depuis la base.
-        $this->redirect("/play/tournament/$tournamentId/$slot");
+        // #resultat : on arrive directement sur le résultat, sans avoir à défiler.
+        $this->redirect("/play/tournament/$tournamentId/$slot#resultat");
     }
 
     private function requireUserId(): int
@@ -133,6 +135,7 @@ class TournamentPlayController
         return (int) $id;
     }
 
+    /** Gauche/droite tirés au sort une fois par match, pour éviter le biais de position. */
     private function randomizeSides(int $runId, string $slot, array &$match): void
     {
         $_SESSION['tournament_sides'] ??= [];
