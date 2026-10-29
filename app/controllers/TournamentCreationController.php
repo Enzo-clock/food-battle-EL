@@ -15,9 +15,7 @@ class TournamentCreationController
     public const QUARTERS = 4;
     private const NAME_MAX = 150; // tournaments.name VARCHAR(150)
 
-    public function __construct(private PDO $db)
-    {
-    }
+    public function __construct(private PDO $db) {}
 
     public function create(): void
     {
@@ -49,10 +47,9 @@ class TournamentCreationController
         $duelCounts = array_filter($duelCounts); // seules les catégories où l'utilisateur a des duels
 
         $errors = [];
-        $today = date('Y-m-d');
+        $startDate = date('Y-m-d', strtotime('+1 day'));
         $old = [
             'name'       => '',
-            'start_date' => date('Y-m-d', strtotime('+1 day')),
             'battle_ids' => [],
             // ?categorie=slug, sinon la catégorie où l'utilisateur a le plus de duels
             'category'   => (string) ($_GET['categorie'] ?? ''),
@@ -67,7 +64,6 @@ class TournamentCreationController
             check_post();
 
             $old['name'] = trim((string) ($_POST['name'] ?? ''));
-            $old['start_date'] = (string) ($_POST['start_date'] ?? '');
             $old['category'] = (string) ($_POST['category'] ?? '');
             $old['battle_ids'] = array_values(array_unique(array_filter(
                 array_map('intval', (array) ($_POST['battle_ids'] ?? [])),
@@ -88,20 +84,13 @@ class TournamentCreationController
                 $errors[] = 'Le nom ne doit pas dépasser ' . self::NAME_MAX . ' caractères.';
             }
 
-            $start = DateTimeImmutable::createFromFormat('!Y-m-d', $old['start_date']);
-            if (!$start || $start->format('Y-m-d') !== $old['start_date']) {
-                $errors[] = 'La date de début est invalide.';
-            } elseif ($old['start_date'] < $today) {
-                $errors[] = 'La date de début ne peut pas être passée.';
-            }
-
             if (!$errors) {
                 try {
                     // Le modèle revérifie tout dans une transaction : duels à l'utilisateur,
                     // encore libres, de la catégorie, et 8 plats différents.
                     $tournamentId = $tournament->createWithQuarterfinals(
                         $old['name'],
-                        $old['start_date'],
+                        $startDate,
                         $userId,
                         $old['category'],
                         $old['battle_ids']
@@ -110,7 +99,6 @@ class TournamentCreationController
                     $_SESSION['tournament_created'] = [
                         'id'         => $tournamentId,
                         'name'       => $old['name'],
-                        'start_date' => $old['start_date'],
                     ];
                     header('Location: /tournoi/creer', true, 303);
                     exit;
@@ -130,7 +118,7 @@ class TournamentCreationController
 
     /**
      * GET/POST /tournoi/{id}/modifier.
-     * Le nom reste modifiable ; la date seulement tant que le tournoi n'a ni commencé ni reçu de vote.
+     * Le nom reste modifiable.
      * Les quarts ne se changent pas : supprimer et recréer le tournoi tant qu'il est à venir.
      */
     public function edit(int $id): void
@@ -138,11 +126,9 @@ class TournamentCreationController
         $tournaments = new Tournament($this->db);
         $tournament = load_managed($tournaments->findWithStats($id));
         $return = safe_return($_GET['retour'] ?? $_POST['retour'] ?? null, '/dashboard?onglet=tournois');
-        $dateEditable = tournament_date_editable($tournament);
-        $today = date('Y-m-d');
 
         $errors = [];
-        $old = ['name' => $tournament['name'], 'start_date' => $tournament['start_date']];
+        $old = ['name' => $tournament['name']];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             check_post();
@@ -154,28 +140,14 @@ class TournamentCreationController
                 $errors[] = 'Le nom ne doit pas dépasser ' . self::NAME_MAX . ' caractères.';
             }
 
-            if ($dateEditable) {
-                $old['start_date'] = (string) ($_POST['start_date'] ?? '');
-                $start = DateTimeImmutable::createFromFormat('!Y-m-d', $old['start_date']);
-                if (!$start || $start->format('Y-m-d') !== $old['start_date']) {
-                    $errors[] = 'La date de début est invalide.';
-                } elseif ($old['start_date'] <= $today) {
-                    $errors[] = 'Choisis une date à partir de demain : un tournoi qui commence aujourd’hui est déjà lancé.';
-                }
-            }
-
             if (!$errors) {
                 $tournaments->rename($id, $old['name']);
-                if ($dateEditable && $old['start_date'] !== $tournament['start_date']) {
-                    $tournaments->reschedule($id, $old['start_date']);
-                }
                 flash_set('Le tournoi « ' . $old['name'] . ' » a été modifié.');
                 header('Location: ' . $return, true, 303);
                 exit;
             }
         }
 
-        $quarters = self::QUARTERS;
         $title = 'Modifier ' . $tournament['name'];
         require __DIR__ . '/../views/edittournament.php';
     }

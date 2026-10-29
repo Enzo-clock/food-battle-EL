@@ -1,9 +1,8 @@
 <?php
 // filepath: app/views/edittournament.php
 // Variables fournies par TournamentCreationController::edit() :
-// $tournament, $old, $errors, $dateEditable, $today, $quarters, $return
+// $tournament, $old, $errors, $return
 
-$tomorrow = date('Y-m-d', strtotime('+1 day'));
 $started = tournament_started($tournament);
 
 require_once __DIR__ . '/../includes/header.php';
@@ -14,7 +13,7 @@ require_once __DIR__ . '/../includes/header.php';
         <span class="pill">MODIFIER</span>
         <h1 class="create-page__title">Modifier « <?= h($tournament['name']) ?> »</h1>
         <p class="create-page__lead">
-            <?= $started ? 'Ce tournoi a commencé le ' . h(date_fr($tournament['start_date'])) . '.' : 'Ce tournoi commence le ' . h(date_fr($tournament['start_date'])) . '.' ?>
+            <?= $started ? 'Ce tournoi a commencé.' : 'Ce tournoi n’a pas encore commencé.' ?>
             <?= plural((int) $tournament['votes'], 'vote reçu', 'votes reçus') ?>.
         </p>
     </header>
@@ -36,24 +35,11 @@ require_once __DIR__ . '/../includes/header.php';
 
         <p class="create-form__legend"><span aria-hidden="true">*</span> Champ obligatoire</p>
 
-        <div class="create-form__grid create-form__grid--even">
+        <div class="create-form__fields">
             <div class="field">
                 <label for="name">Nom du tournoi <span class="field__req" aria-hidden="true">*</span></label>
-                <input id="name" name="name" maxlength="150" required autocomplete="off" value="<?= h($old['name']) ?>" data-counter>
-            </div>
-
-            <div class="field<?= $dateEditable ? '' : ' field--locked' ?>">
-                <label for="start_date">Premier match <?= $dateEditable ? '<span class="field__req" aria-hidden="true">*</span>' : '' ?></label>
-                <?php if ($dateEditable): ?>
-                    <input id="start_date" name="start_date" type="date" required min="<?= h($tomorrow) ?>"
-                        value="<?= h($old['start_date']) ?>" aria-describedby="date-hint">
-                    <p class="field__hint" id="date-hint">Les <?= $quarters ?> quarts suivent : un match par jour à partir de cette date.</p>
-                <?php else: ?>
-                    <input id="start_date" type="date" value="<?= h($tournament['start_date']) ?>" readonly aria-describedby="date-lock">
-                    <p class="field__notice" id="date-lock">
-                        <?= $started ? 'Le tournoi a commencé : ses dates sont fixées.' : 'Le tournoi a déjà reçu des votes : ses dates sont fixées.' ?>
-                    </p>
-                <?php endif ?>
+                <input id="name" name="name" maxlength="150" required autocomplete="off"
+                    value="<?= h($old['name']) ?>" data-counter>
             </div>
         </div>
 

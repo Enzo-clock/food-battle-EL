@@ -106,9 +106,3 @@ function tournament_started(array $tournament): bool
 {
     return $tournament['start_date'] <= date('Y-m-d');
 }
-
-/** Tant qu'un tournoi n'a ni commencé ni reçu de vote, on peut encore déplacer sa date. */
-function tournament_date_editable(array $tournament): bool
-{
-    return !tournament_started($tournament) && (int) ($tournament['votes'] ?? 0) === 0;
-}

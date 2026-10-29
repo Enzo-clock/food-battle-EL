@@ -191,22 +191,19 @@ class Tournament
                     tournament_id,
                     phase,
                     position,
-                    battle_date,
                     dish_1_id,
                     dish_2_id
                 )
-                VALUES (?, ?, 'quarter', ?, ?, ?, ?)
+                VALUES (?, ?, 'quarter', ?, ?, ?)
             ");
 
             foreach ($battleIds as $index => $battleId) {
                 $source = $battlesById[$battleId];
-                $date = $start->modify("+$index days")->format('Y-m-d');
 
                 $insertBattle->execute([
                     $creatorId,
                     $tournamentId,
                     $index + 1,
-                    $date,
                     (int) $source['dish_1_id'],
                     (int) $source['dish_2_id'],
                 ]);
@@ -241,28 +238,6 @@ class Tournament
     public function rename(int $id, string $name): void
     {
         $this->db->prepare('UPDATE tournaments SET name = ? WHERE id = ?')->execute([$name, $id]);
-    }
-
-    /**
-     * Déplace un tournoi pas encore commencé : nouvelle date de début, et les quarts suivent
-     * (un par jour). En deux temps, car UNIQUE (tournament_id, battle_date) est vérifié
-     * ligne par ligne : décaler d'un jour ferait sinon entrer un quart sur la date du suivant.
-     */
-    public function reschedule(int $id, string $startDate): void
-    {
-        $this->db->beginTransaction();
-        try {
-            $this->db->prepare('UPDATE tournaments SET start_date = ? WHERE id = ?')->execute([$startDate, $id]);
-            $this->db->prepare("UPDATE battles SET battle_date = battle_date + 100000 WHERE tournament_id = ?")
-                ->execute([$id]);
-            $this->db->prepare(
-                'UPDATE battles SET battle_date = CAST(? AS date) + (position - 1) WHERE tournament_id = ?'
-            )->execute([$startDate, $id]);
-            $this->db->commit();
-        } catch (Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
     }
 
     /**
