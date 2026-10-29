@@ -178,6 +178,12 @@ a:hover {
     font-size: 22px;
     font-weight: 800;
     text-decoration: none;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+
+
+.logo:hover { 
+    transform: translateY(-8px); 
 }
 
 .logo__img {
@@ -5201,21 +5207,27 @@ details>summary {
     fill: var(--peach);
 }
 
-.draw__deco--dot {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--sky);
+/* points d'interrogation : le décor reprend la question du titre (« Mon plat du jour… ? ») */
+.draw__deco--ask {
+    color: var(--sky);
+    font-size: 110px;
+    font-weight: 800;
+    line-height: 1;
+    user-select: none;
 }
 
-.draw__deco--dot-a {
+.draw__deco--ask-a {
     left: 18%;
-    bottom: 16%;
+    bottom: 12%;
+    rotate: -14deg;
 }
 
-.draw__deco--dot-b {
+.draw__deco--ask-b {
     right: 16%;
-    bottom: 34%;
+    bottom: 30%;
+    font-size: 84px;
+    color: var(--mint);
+    rotate: 12deg;
 }
 
 .draw__burst {
