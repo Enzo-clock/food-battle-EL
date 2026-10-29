@@ -234,7 +234,6 @@ require_once __DIR__ . '/../includes/header.php';
             <ul class="dash-list">
                 <?php foreach ($items as $t): ?>
                     <?php
-                    $end = date('Y-m-d', strtotime($t['start_date'] . ' +3 days')); // 4 quarts, un par jour
                     if ($t['winner'] !== null) {
                         $status = ['Terminé', 'tone-mint'];
                     } elseif ($t['start_date'] > $today) {
@@ -254,7 +253,6 @@ require_once __DIR__ . '/../includes/header.php';
                                     <?php if ($category !== ''): ?>
                                         <span class="tag tone-<?= h(category_tone($category)) ?>"><?= h(category_label($category)) ?></span>
                                     <?php endif ?>
-                                    <span>Quarts du <?= h(date_fr($t['start_date'])) ?> au <?= h(date_fr($end)) ?></span>
                                     <?= $byLine($t) ?>
                                 </p>
                             </div>

@@ -1,7 +1,7 @@
 <?php
 // filepath: app/views/createtournament.php
 // Variables fournies par TournamentCreationController::create() :
-// $categories, $battles, $duelCounts, $old, $errors, $success, $quarters, $today
+// $categories, $battles, $duelCounts, $old, $errors, $success, $quarters
 
 $category = $old['category'];
 $categoryLabel = $category !== '' ? category_label($category) : '';
@@ -16,14 +16,8 @@ $missing = max(0, $quarters - count($shown));
 // Ordre des quarts déjà choisis (après une erreur) : position 1 à 4, dans l'ordre d'envoi.
 $seedOf = array_flip($old['battle_ids']);
 
-$quarterDates = static function (string $start) use ($quarters): array {
-    $time = strtotime($start);
-    return $time ? [date_fr(date('Y-m-d', $time)), date_fr(date('Y-m-d', strtotime('+' . ($quarters - 1) . ' days', $time)))] : ['', ''];
-};
-[$firstDay, $lastDay] = $quarterDates($old['start_date']);
-
 $trophy = static fn(int $size = 22): string =>
-    '<svg viewBox="0 0 24 24" width="' . $size . '" height="' . $size . '" fill="none" stroke="currentColor" stroke-width="2.2"'
+'<svg viewBox="0 0 24 24" width="' . $size . '" height="' . $size . '" fill="none" stroke="currentColor" stroke-width="2.2"'
     . ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/>'
     . '<path d="M17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/></svg>';
 
@@ -43,7 +37,6 @@ require_once __DIR__ . '/../includes/header.php';
     <?php if ($success): ?>
         <div class="create-success box" role="status">
             <p class="create-success__title">Le tournoi « <?= h($success['name']) ?> » est créé !</p>
-            <p>Le premier quart de finale se joue le <?= h(date_fr($success['start_date'])) ?>.</p>
             <div class="create-success__actions">
                 <a class="btn btn--primary" href="/dashboard?onglet=tournois">Voir mes tournois</a>
                 <a class="btn btn--ghost" href="/tournoi/creer">Créer un autre tournoi</a>
@@ -168,21 +161,13 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <section class="tour-step" aria-labelledby="step-info">
                     <h2 class="tour-step__title" id="step-info">
-                        <span class="tour-step__num" aria-hidden="true">3</span> Nom et date
+                        <span class="tour-step__num" aria-hidden="true">3</span> Nom du tournoi
                     </h2>
                     <div class="tour-info">
                         <div class="field">
-                            <label for="name">Nom du tournoi <span class="field__req" aria-hidden="true">*</span></label>
+                            <label for="name">Choisis un nom pour ton tournoi. <span class="field__req" aria-hidden="true">*</span></label>
                             <input id="name" name="name" maxlength="150" required autocomplete="off"
                                 placeholder="Ex. Coupe des burgers d’automne" value="<?= h($old['name']) ?>" data-counter>
-                        </div>
-                        <div class="field">
-                            <label for="start_date">Premier match <span class="field__req" aria-hidden="true">*</span></label>
-                            <input id="start_date" name="start_date" type="date" required min="<?= h($today) ?>"
-                                value="<?= h($old['start_date']) ?>" aria-describedby="schedule-hint" data-tour-date>
-                            <p class="field__hint" id="schedule-hint" data-tour-schedule>
-                                Quarts de finale : un match par jour, du <?= h($firstDay) ?> au <?= h($lastDay) ?>.
-                            </p>
                         </div>
                     </div>
                 </section>
