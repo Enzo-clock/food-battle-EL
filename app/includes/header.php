@@ -12,9 +12,9 @@ $navUser = current_user();
 $navName = $navUser['username'] ?? '';
 $navInitial = $navName !== '' ? mb_strtoupper(mb_substr($navName, 0, 1)) : '?';
 
-// Navigation = les pages de contenu. Le logo ramène à l'accueil : pas de lien « Accueil ».
-// Le compte (identité, back-office, déconnexion) a son propre menu, à droite.
-$navLinks = ['/classements' => 'Classement'];
+// Navigation = les pages de contenu. « Accueil » double le logo : tout le monde ne sait pas
+// que le logo ramène à l'accueil. Le compte (identité, back-office, déconnexion) a son propre menu, à droite.
+$navLinks = ['/' => 'Accueil', '/classements' => 'Classement'];
 if ($navUser) {
     $navLinks['/dashboard'] = 'Dashboard';
 }

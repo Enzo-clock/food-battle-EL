@@ -9,6 +9,7 @@
                                                       14. Modifier / supprimer (CRUD, back-office)
                                                       15. Jouer un tournoi (/play/tournament)
                                                       16. Classements (/classements)
+                                                      17. Tirage au sort (/tirage)
 
    Chaque section contient ses propres règles responsive à sa fin,
    pour qu'on n'ait jamais à chercher une même règle à deux endroits.
@@ -5131,5 +5132,291 @@ details>summary {
 
     .rank-help__body {
         padding: 0 18px 18px;
+    }
+}
+
+/* ==========================================================================
+   17. Tirage au sort (/tirage) — « Mon plat du jour… ? »
+   La carte reprend celle de l'accueil (.dish-card). L'animation tient en deux phases,
+   pilotées par data-state sur .draw (public/assets/draw.js) :
+     armed     JS chargé, rien n'est encore montré (images en cours de préchargement)
+     spinning  phase 1 : les plats défilent par à-coups dans la carte (photo et nom seulement)
+     revealed  phase 2 : la carte gagnante « pop » avec un seul rebond, l'éclat apparaît,
+               puis le contenu arrive en cascade
+     result    sans JavaScript : tout est affiché tout de suite, sans animation
+   data-busy pendant un nouveau tirage : la carte précédente reste, le bouton est inactif.
+   ========================================================================== */
+
+.draw-head {
+    margin-bottom: 8px;
+}
+
+.draw-chips {
+    margin: 18px 0 0;
+}
+
+.draw-empty {
+    margin-top: 32px;
+}
+
+.draw {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+/* --- Scène : décor, éclat, carte --------------------------------------------- */
+
+.draw__stage {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+    /* l'éclat ne déborde jamais de la scène : ni scroll horizontal sur mobile,
+       ni rayons sur les pastilles ou sous le texte du statut */
+    overflow: clip;
+}
+
+.draw__deco,
+.draw__burst {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.draw__deco--star {
+    left: 10%;
+    top: 22%;
+    width: 84px;
+    fill: var(--lilac);
+    rotate: -12deg;
+}
+
+.draw__deco--sun {
+    right: 8%;
+    top: 6%;
+    width: 124px;
+    fill: var(--peach);
+}
+
+.draw__deco--dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--sky);
+}
+
+.draw__deco--dot-a {
+    left: 18%;
+    bottom: 16%;
+}
+
+.draw__deco--dot-b {
+    right: 16%;
+    bottom: 34%;
+}
+
+.draw__burst {
+    left: 50%;
+    top: 50%;
+    width: min(500px, 128vw);
+    translate: -50% -50%;
+    fill: var(--lemon);
+}
+
+.draw-card {
+    position: relative;
+    z-index: 1;
+    width: min(340px, 100%);
+}
+
+.draw-card__name {
+    font-size: 24px;
+}
+
+/* photo un peu moins haute que sur l'accueil : carte et bouton tiennent dans l'écran */
+.draw-card__img {
+    aspect-ratio: 16 / 10;
+}
+
+/* hauteur réservée pour 2 lignes : la carte ne change pas de taille d'un plat à l'autre */
+.draw-card__desc {
+    min-height: 3em;
+}
+
+/* --- Statut, erreur, action --------------------------------------------------- */
+
+.draw__status {
+    font-weight: 600;
+    text-align: center;
+    min-height: 1.5em;
+}
+
+.draw__error {
+    margin: 0;
+    max-width: 46ch;
+    text-align: center;
+}
+
+.draw__actions .btn {
+    min-height: 56px;
+    padding: 0 32px;
+    transition: transform .08s ease, box-shadow .08s ease, opacity .2s ease;
+}
+
+/* tirage en cours : le bouton reste à sa place mais ne répond plus (évite le double clic) */
+.draw[data-state="armed"] .draw__retry,
+.draw[data-state="spinning"] .draw__retry,
+.draw[data-busy] .draw__retry {
+    opacity: .45;
+    pointer-events: none;
+}
+
+/* --- Les états de l'animation -------------------------------------------------- */
+
+/* armed : rien n'est montré tant que les images ne sont pas prêtes.
+   Filet de sécurité : si draw.js ne se charge pas, la carte apparaît d'elle-même après 3 s. */
+.draw[data-state="armed"] .draw-card,
+.draw[data-state="armed"] .draw__burst {
+    opacity: 0;
+    animation: draw-fallback 0s 3s forwards;
+}
+
+/* phase 1 : seuls la photo et le nom défilent */
+.draw[data-state="spinning"] .draw-card__reveal,
+.draw[data-state="spinning"] .draw__burst {
+    opacity: 0;
+}
+
+/* un « à-coup » à chaque changement de plat : saut net, sans glissé (steps) */
+.draw-card.is-tick .draw-card__img,
+.draw-card.is-tick .draw-card__name {
+    animation: draw-tick 120ms steps(2, jump-none);
+}
+
+/* phase 2 : la carte pop avec un seul rebond (courbe qui dépasse puis revient) */
+.draw[data-state="revealed"] .draw-card {
+    animation: draw-pop 480ms cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
+.draw[data-state="revealed"] .draw__burst {
+    animation: draw-burst 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.draw[data-state="revealed"] .draw-card__img {
+    animation: draw-in 260ms ease-out 80ms both;
+}
+
+/* puis le contenu, élément par élément (--i = ordre d'arrivée) */
+.draw[data-state="revealed"] .draw-card__reveal {
+    animation: draw-in 320ms ease-out both;
+    animation-delay: calc(160ms + var(--i, 0) * 90ms);
+}
+
+@keyframes draw-fallback {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes draw-tick {
+    from {
+        translate: 0 -8px;
+    }
+
+    to {
+        translate: 0 0;
+    }
+}
+
+@keyframes draw-pop {
+    from {
+        scale: .86;
+    }
+
+    to {
+        scale: 1;
+    }
+}
+
+@keyframes draw-burst {
+    from {
+        opacity: 0;
+        scale: .45;
+        rotate: -30deg;
+    }
+
+    to {
+        opacity: 1;
+        scale: 1;
+        rotate: 0deg;
+    }
+}
+
+@keyframes draw-in {
+    from {
+        opacity: 0;
+        translate: 0 8px;
+    }
+
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@keyframes draw-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* mouvements réduits (réglage du système) : pas de défilement (géré dans draw.js),
+   un simple fondu à la place du pop, de l'éclat qui tourne et de la cascade */
+@media (prefers-reduced-motion: reduce) {
+
+    .draw[data-state="revealed"] .draw-card,
+    .draw[data-state="revealed"] .draw__burst,
+    .draw[data-state="revealed"] .draw-card__img,
+    .draw[data-state="revealed"] .draw-card__reveal {
+        animation: draw-fade 200ms ease-out both;
+    }
+}
+
+/* --- Responsive ---------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+    /* carte plus étroite que l'écran : l'éclat reste visible tout autour */
+    .draw-card {
+        width: min(300px, 82%);
+    }
+
+    /* sur téléphone, le décor gênerait la carte : on ne garde que l'éclat */
+    .draw__deco {
+        display: none;
+    }
+
+    .draw-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        /* place pour l'ombre des pastilles */
+        padding: 2px 6px 8px 2px;
+        margin-right: calc(-1 * var(--gutter));
+        scrollbar-width: none;
+    }
+
+    .draw-chips .chip {
+        flex: none;
+    }
+
+    .draw__actions,
+    .draw__actions .btn {
+        width: 100%;
     }
 }

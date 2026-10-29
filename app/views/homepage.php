@@ -80,7 +80,7 @@ function filter_url(string $category, string $q): string
         <p class="hero__lead">Explore les spots du quartier, note les plats et vote pour ton favori.</p>
         <div class="hero__actions">
             <a class="btn btn--primary" href="/play/tournament">Lancer un tournoi</a>
-            <a class="btn btn--ghost" href="#carte">Découvrir la carte</a>
+            <a class="btn btn--ghost" href="/tirage">Mon plat du jour… ?</a>
         </div>
     </div>
 
