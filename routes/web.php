@@ -155,6 +155,19 @@ if ($path === '/classements' && $method === 'GET') {
     exit;
 }
 
+// « Mon plat du jour… ? » : la page du tirage au sort, et l'API utilisée par « Retenter ma chance »
+if ($path === '/tirage' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/DrawController.php';
+    (new DrawController($db))->index();
+    exit;
+}
+
+if ($path === '/api/tirage' && $method === 'GET') {
+    require_once __DIR__ . '/../app/controllers/DrawController.php';
+    (new DrawController($db))->api();
+    exit;
+}
+
 // Pages de contenu fixe (mentions légales, confidentialité, contact)
 $pages = [
     '/mentions-legales' => 'legal',
