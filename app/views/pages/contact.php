@@ -3,7 +3,7 @@
 // Remplacer [contact@exemple.fr] par l'adresse de l'équipe.
 require_once __DIR__ . '/../../includes/header.php';
 
-$contactEmail = '[contact@exemple.fr]';
+$contactEmail = '[contact@foodbattle.fr]';
 $subjects = [
     'Proposer un plat ou un établissement' => 'Nom du plat, établissement, ville, prix…',
     'Signaler un contenu'                   => 'Lien de la page et ce qui pose problème.',

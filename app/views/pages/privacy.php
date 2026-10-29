@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <section class="box prose__block" aria-labelledby="responsable">
         <h2 id="responsable">Responsable du traitement</h2>
-        <p>L’équipe projet FoodBattle ([Prénom Nom] et [Prénom Nom]), joignable via la <a href="/contact">page Contact</a>.</p>
+        <p>L’équipe projet FoodBattle (Enzo Gohard et Liamine Djellali), joignable via la <a href="/contact">page Contact</a>.</p>
     </section>
 
     <section class="box prose__block" aria-labelledby="collecte">
@@ -68,8 +68,8 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <section class="box prose__block" aria-labelledby="duree">
         <h2 id="duree">Durée de conservation</h2>
-        <p>Tes données sont conservées tant que ton compte existe. [Proposition : suppression automatique après
-            3 ans d’inactivité.] Tes votes sont supprimés avec ton compte.</p>
+        <p>Tes données sont conservées tant que ton compte existe. Si tu ne te connectes pas pendant 3 ans, 
+            ton compte et tes données sont supprimés automatiquement. Tes votes sont supprimés avec ton compte.</p>
     </section>
 
     <section class="box prose__block" aria-labelledby="droits">
@@ -81,7 +81,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <a href="https://www.cnil.fr/fr/plaintes" rel="noopener">CNIL</a>.</p>
     </section>
 
-    <p class="prose__updated">Dernière mise à jour : [date].</p>
+    <p class="prose__updated">Dernière mise à jour : 29/10/2026.</p>
 </article>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
