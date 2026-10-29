@@ -79,14 +79,17 @@ CREATE TABLE
         tournament_id INTEGER REFERENCES tournaments (id) ON DELETE CASCADE,
         phase VARCHAR(10) CHECK (phase IN ('quarter', 'semi', 'final')),
         position SMALLINT CHECK (position BETWEEN 1 AND 7),
-        battle_date DATE NOT NULL,
+        battle_date DATE,
         dish_1_id INTEGER REFERENCES dishes (id) ON DELETE RESTRICT,
         dish_2_id INTEGER REFERENCES dishes (id) ON DELETE RESTRICT,
         dish_winner_id INTEGER REFERENCES dishes (id) ON DELETE RESTRICT,
         next_battle_id INTEGER REFERENCES battles (id) ON DELETE RESTRICT,
         next_slot SMALLINT CHECK (next_slot IN (1, 2)),
         UNIQUE (tournament_id, position),
-        UNIQUE (tournament_id, battle_date),
+        CONSTRAINT battles_free_battle_date_required CHECK (
+            tournament_id IS NOT NULL
+            OR battle_date IS NOT NULL
+        ),
         CHECK (
             dish_1_id IS DISTINCT
             FROM
@@ -187,6 +190,70 @@ VALUES
         'Test',
         'Classement 2',
         'classement-test-2@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'admin',
+        'Go',
+        'admin',
+        'admin@email.com',
+        '$2y$12$yNX0rzMUe7BY0DgKXFMHp.nzD65mdO3ajrZHl2lJPA83grN4u8irC',
+        'admin'
+    ),
+    (
+        'demo-camille',
+        'Martin',
+        'Camille',
+        'demo-camille@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-lucas',
+        'Bernard',
+        'Lucas',
+        'demo-lucas@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-ines',
+        'Petit',
+        'Inès',
+        'demo-ines@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-mehdi',
+        'Robert',
+        'Mehdi',
+        'demo-mehdi@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-claire',
+        'Richard',
+        'Claire',
+        'demo-claire@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-nolan',
+        'Durand',
+        'Nolan',
+        'demo-nolan@foodbattle.local',
+        '!disabled-test-account!',
+        'user'
+    ),
+    (
+        'demo-sarah',
+        'Moreau',
+        'Sarah',
+        'demo-sarah@foodbattle.local',
         '!disabled-test-account!',
         'user'
     );
@@ -695,9 +762,9 @@ DROP;
 WITH
     tournament_definitions (category_slug, name) AS (
         VALUES
-            ('burger', 'Tournoi burgers enzOOO'),
-            ('pizza', 'Tournoi pizzas enzOOO'),
-            ('tacos', 'Tournoi tacos enzOOO')
+            ('burger', 'Coupe des burgers de Lille'),
+            ('pizza', 'Trophée des pizzas artisanales'),
+            ('tacos', 'Challenge tacos du Nord')
     ),
     inserted AS (
         INSERT INTO
@@ -740,7 +807,6 @@ INSERT INTO
         tournament_id,
         phase,
         position,
-        battle_date,
         dish_1_id,
         dish_2_id
     )
@@ -749,7 +815,6 @@ SELECT
     t.tournament_id,
     'quarter',
     b.position,
-    CURRENT_DATE + b.position,
     b.dish_1_id,
     b.dish_2_id
 FROM
@@ -968,7 +1033,7 @@ WITH
         INSERT INTO
             tournaments (name, start_date, creator_id)
         SELECT
-            'Deuxième tournoi burgers enzOOO',
+            'La revanche des burgers',
             CURRENT_DATE + 2,
             u.id
         FROM
@@ -1001,7 +1066,6 @@ INSERT INTO
         tournament_id,
         phase,
         position,
-        battle_date,
         dish_1_id,
         dish_2_id
     )
@@ -1010,7 +1074,6 @@ SELECT
     t.tournament_id,
     'quarter',
     CAST((d1.seed + 1) / 2 AS SMALLINT),
-    CURRENT_DATE + CAST((d1.seed + 1) / 2 AS INTEGER),
     d1.dish_id,
     d2.dish_id
 FROM
@@ -1021,7 +1084,7 @@ FROM
     AND d2.seed = d1.seed + 1
     JOIN users u ON u.username = 'enzOOO';
 
--- Crée une participation terminée pour les trois comptes.
+-- Crée une participation terminée pour les deux comptes de test.
 INSERT INTO
     tournament_runs (tournament_id, user_id, run_date, finished_at)
 SELECT
@@ -1033,18 +1096,13 @@ FROM
     demo_second_burger_tournament t
     CROSS JOIN users u
 WHERE
-    u.username IN (
-        'enzOOO',
-        'classement-test-1',
-        'classement-test-2'
-    );
+    u.username IN ('classement-test-1', 'classement-test-2');
 
 -- Enregistre les sept matchs joués par chacun.
 -- Le score cible est le nombre de victoires du burger tête de série 1.
 WITH
     targets (username, target_score) AS (
         VALUES
-            ('enzOOO', 2),
             ('classement-test-1', 1),
             ('classement-test-2', 3)
     ),
@@ -1220,74 +1278,358 @@ SELECT
 FROM
     all_matches;
 
-COMMIT;
+-- Comptes utilisateurs de démonstration : 10 au total, hors comptes techniques et admins.
+-- Les sept nouveaux comptes ont des identifiants de connexion désactivés.
+-- Crée deux tournois par catégorie, avec un créateur distinct pour chaque paire.
+CREATE TEMP TABLE demo_additional_tournaments (
+    tournament_id INTEGER PRIMARY KEY,
+    category_slug VARCHAR(20) NOT NULL,
+    tournament_order SMALLINT NOT NULL
+) ON COMMIT DROP;
 
-/*
-CREATE TABLE ratings (
-id SERIAL PRIMARY KEY,
-dish_id INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
-nickname VARCHAR(60) NOT NULL,
-score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
-comment TEXT NOT NULL,
-status VARCHAR(20) NOT NULL DEFAULT 'published'
-CHECK (status IN ('published', 'pending')),
-created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+WITH
+    tournament_definitions (category_slug, name, creator_username, tournament_order) AS (
+        VALUES
+            ('burger', 'Le défi smash & saveurs', 'enzOOO', 1),
+            ('burger', 'La coupe des burgers maison', 'demo-camille', 2),
+            ('tacos', 'Le trophée des tacos gourmands', 'demo-lucas', 3),
+            ('tacos', 'La coupe des saveurs mexicaines', 'demo-ines', 4),
+            ('pizza', 'Le challenge des pizzas au feu de bois', 'demo-mehdi', 5),
+            ('pizza', 'La coupe des pizzaiolos', 'demo-claire', 6)
+    ),
+    inserted AS (
+        INSERT INTO tournaments (name, start_date, creator_id)
+        SELECT
+            td.name,
+            CURRENT_DATE + 1,
+            u.id
+        FROM tournament_definitions td
+        JOIN users u ON u.username = td.creator_username
+        RETURNING id, name
+    )
+INSERT INTO demo_additional_tournaments (tournament_id, category_slug, tournament_order)
+SELECT i.id, td.category_slug, td.tournament_order
+FROM tournament_definitions td
+JOIN inserted i ON i.name = td.name;
 
-CREATE TABLE votes (
-id SERIAL PRIMARY KEY,
-dish_id INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
-visitor_key VARCHAR(128) NOT NULL,
-created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-UNIQUE (dish_id, visitor_key)
-);
+-- Chaque nouveau tournoi reprend les huit plats et les quatre quarts de sa catégorie.
+INSERT INTO tournament_dishes (tournament_id, dish_id, seed)
+SELECT t.tournament_id, d.dish_id, d.seed
+FROM demo_additional_tournaments t
+JOIN demo_dishes d ON d.category_slug = t.category_slug;
 
-WITH vote_counts (dish_id, vote_count) AS (
-VALUES
-(1, 9), (2, 16), (3, 4), (4, 11),
-(5, 18), (6, 6), (7, 13), (8, 20),
-(9, 8), (10, 15), (11, 3), (12, 10)
+INSERT INTO battles (
+    creator_id,
+    tournament_id,
+    phase,
+    position,
+    dish_1_id,
+    dish_2_id
 )
-INSERT INTO votes (dish_id, visitor_key)
-SELECT vc.dish_id, format('seed-%s-%s', vc.dish_id, series.n)
-FROM vote_counts AS vc
-CROSS JOIN LATERAL generate_series(0, vc.vote_count - 1) AS series(n);
+SELECT
+    u.id,
+    t.tournament_id,
+    'quarter',
+    b.position,
+    b.dish_1_id,
+    b.dish_2_id
+FROM demo_additional_tournaments t
+JOIN demo_battles b ON b.category_slug = t.category_slug
+JOIN tournaments tournament ON tournament.id = t.tournament_id
+JOIN users u ON u.id = tournament.creator_id;
 
-INSERT INTO ratings (dish_id, nickname, score, comment, status) VALUES
-(1, 'Gourmand3', 3, 'Belle découverte dans le quartier.', 'published'),
-(1, 'Gourmand4', 4, 'La sauce fait la différence.', 'published'),
-(1, 'Gourmand5', 5, 'Bon rapport qualité-prix.', 'published'),
-(2, 'Gourmand6', 4, 'La sauce fait la différence.', 'published'),
-(2, 'Gourmand7', 5, 'Bon rapport qualité-prix.', 'published'),
-(2, 'Gourmand8', 2, 'Une option sympa pour le midi.', 'published'),
-(3, 'Gourmand9', 5, 'Bon rapport qualité-prix.', 'published'),
-(3, 'Gourmand10', 2, 'Une option sympa pour le midi.', 'published'),
-(3, 'Gourmand11', 3, 'Très bon, je reviendrai.', 'pending'),
-(4, 'Gourmand12', 2, 'Une option sympa pour le midi.', 'published'),
-(4, 'Gourmand13', 3, 'Très bon, je reviendrai.', 'pending'),
-(4, 'Gourmand14', 4, 'Belle découverte dans le quartier.', 'published'),
-(5, 'Gourmand15', 3, 'Très bon, je reviendrai.', 'pending'),
-(5, 'Gourmand16', 4, 'Belle découverte dans le quartier.', 'published'),
-(5, 'Gourmand17', 5, 'La sauce fait la différence.', 'published'),
-(6, 'Gourmand18', 4, 'Belle découverte dans le quartier.', 'published'),
-(6, 'Gourmand19', 5, 'La sauce fait la différence.', 'published'),
-(6, 'Gourmand20', 2, 'Bon rapport qualité-prix.', 'published'),
-(7, 'Gourmand21', 5, 'La sauce fait la différence.', 'published'),
-(7, 'Gourmand22', 2, 'Bon rapport qualité-prix.', 'published'),
-(7, 'Gourmand23', 3, 'Une option sympa pour le midi.', 'published'),
-(8, 'Gourmand24', 2, 'Bon rapport qualité-prix.', 'published'),
-(8, 'Gourmand25', 3, 'Une option sympa pour le midi.', 'published'),
-(8, 'Gourmand26', 4, 'Très bon, je reviendrai.', 'pending'),
-(9, 'Gourmand27', 3, 'Une option sympa pour le midi.', 'published'),
-(9, 'Gourmand28', 4, 'Très bon, je reviendrai.', 'pending'),
-(9, 'Gourmand29', 5, 'Belle découverte dans le quartier.', 'published'),
-(10, 'Gourmand30', 4, 'Très bon, je reviendrai.', 'pending'),
-(10, 'Gourmand31', 5, 'Belle découverte dans le quartier.', 'published'),
-(10, 'Gourmand32', 2, 'La sauce fait la différence.', 'published'),
-(11, 'Gourmand33', 5, 'Belle découverte dans le quartier.', 'published'),
-(11, 'Gourmand34', 2, 'La sauce fait la différence.', 'published'),
-(11, 'Gourmand35', 3, 'Bon rapport qualité-prix.', 'published'),
-(12, 'Gourmand36', 2, 'La sauce fait la différence.', 'published'),
-(12, 'Gourmand37', 3, 'Bon rapport qualité-prix.', 'published'),
-(12, 'Gourmand38', 4, 'Une option sympa pour le midi.', 'published');
- */
+-- Participations provisoires des comptes user, rééquilibrées avant le COMMIT.
+INSERT INTO tournament_runs (tournament_id, user_id, run_date, finished_at)
+SELECT
+    t.tournament_id,
+    u.id,
+    CURRENT_DATE,
+    CURRENT_TIMESTAMP
+FROM demo_additional_tournaments t
+CROSS JOIN users u
+WHERE u.role = 'user';
+
+-- Génère les sept matchs de chaque partie avec des vainqueurs cohérents dans le tableau.
+WITH
+    participant_runs AS (
+        SELECT
+            r.id AS run_id,
+            r.tournament_id,
+            t.tournament_order,
+            ROW_NUMBER() OVER (
+                PARTITION BY r.tournament_id
+                ORDER BY u.username
+            )::INTEGER AS participant_order
+        FROM tournament_runs r
+        JOIN demo_additional_tournaments t ON t.tournament_id = r.tournament_id
+        JOIN users u ON u.id = r.user_id
+        WHERE r.run_date = CURRENT_DATE
+    ),
+    quarter_matches AS (
+        SELECT
+            p.run_id,
+            p.tournament_order,
+            p.participant_order,
+            b.position,
+            b.dish_1_id,
+            b.dish_2_id,
+            CASE
+                WHEN (p.participant_order + p.tournament_order + b.position) % 2 = 0
+                    THEN b.dish_1_id
+                ELSE b.dish_2_id
+            END AS dish_winner_id
+        FROM participant_runs p
+        JOIN battles b ON b.tournament_id = p.tournament_id
+        WHERE b.phase = 'quarter'
+    ),
+    quarter_winners AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            MAX(dish_winner_id) FILTER (WHERE position = 1) AS q1_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 2) AS q2_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 3) AS q3_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 4) AS q4_winner
+        FROM quarter_matches
+        GROUP BY run_id, tournament_order, participant_order
+    ),
+    semifinal_matches AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'D1'::VARCHAR(2) AS slot,
+            q1_winner AS dish_1_id,
+            q2_winner AS dish_2_id,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN q1_winner
+                ELSE q2_winner
+            END AS dish_winner_id
+        FROM quarter_winners
+        UNION ALL
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'D2'::VARCHAR(2),
+            q3_winner,
+            q4_winner,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN q4_winner
+                ELSE q3_winner
+            END
+        FROM quarter_winners
+    ),
+    semifinal_winners AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            MAX(dish_winner_id) FILTER (WHERE slot = 'D1') AS d1_winner,
+            MAX(dish_winner_id) FILTER (WHERE slot = 'D2') AS d2_winner
+        FROM semifinal_matches
+        GROUP BY run_id, tournament_order, participant_order
+    ),
+    final_matches AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'F'::VARCHAR(2) AS slot,
+            d1_winner AS dish_1_id,
+            d2_winner AS dish_2_id,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN d1_winner
+                ELSE d2_winner
+            END AS dish_winner_id
+        FROM semifinal_winners
+    ),
+    all_matches AS (
+        SELECT run_id, 'Q' || position AS slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM quarter_matches
+        UNION ALL
+        SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM semifinal_matches
+        UNION ALL
+        SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM final_matches
+    )
+INSERT INTO tournament_run_matches (
+    run_id,
+    slot,
+    dish_1_id,
+    dish_2_id,
+    dish_winner_id
+)
+SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+FROM all_matches;
+
+-- Répartit les absences entre les comptes, en laissant enzOOO sans participation.
+CREATE TEMP TABLE demo_tournament_absences (
+    tournament_id INTEGER PRIMARY KEY,
+    skipped_username VARCHAR(50) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO demo_tournament_absences (tournament_id, skipped_username)
+SELECT t.id, schedule.skipped_username
+FROM (
+    VALUES
+        ('Coupe des burgers de Lille', 'demo-camille'),
+        ('Trophée des pizzas artisanales', 'demo-lucas'),
+        ('Challenge tacos du Nord', 'demo-ines'),
+        ('La revanche des burgers', 'demo-mehdi'),
+        ('Le défi smash & saveurs', 'demo-claire'),
+        ('La coupe des burgers maison', 'demo-nolan'),
+        ('Le trophée des tacos gourmands', 'demo-sarah'),
+        ('La coupe des saveurs mexicaines', 'classement-test-1'),
+        ('Le challenge des pizzas au feu de bois', 'classement-test-2'),
+        ('La coupe des pizzaiolos', 'enzOOO')
+) AS schedule (tournament_name, skipped_username)
+JOIN tournaments t ON t.name = schedule.tournament_name;
+
+-- Remplace les participations provisoires insérées plus haut par le calendrier équilibré.
+DELETE FROM tournament_run_matches m
+USING tournament_runs r, demo_tournament_absences t
+WHERE m.run_id = r.id
+  AND r.tournament_id = t.tournament_id;
+
+DELETE FROM tournament_runs r
+USING demo_tournament_absences t
+WHERE r.tournament_id = t.tournament_id;
+
+INSERT INTO tournament_runs (tournament_id, user_id, run_date, finished_at)
+SELECT
+    t.tournament_id,
+    u.id,
+    CURRENT_DATE,
+    CURRENT_TIMESTAMP
+FROM demo_tournament_absences t
+CROSS JOIN users u
+WHERE u.role = 'user'
+  AND u.username <> 'enzOOO'
+  AND u.username <> t.skipped_username;
+
+-- Chaque partie terminée contient les sept matchs du tableau et des vainqueurs cohérents.
+WITH
+    tournament_orders AS (
+        SELECT
+            tournament_id,
+            ROW_NUMBER() OVER (ORDER BY tournament_id)::INTEGER AS tournament_order
+        FROM demo_tournament_absences
+    ),
+    participant_runs AS (
+        SELECT
+            r.id AS run_id,
+            r.tournament_id,
+            t.tournament_order,
+            ROW_NUMBER() OVER (
+                PARTITION BY r.tournament_id
+                ORDER BY u.username
+            )::INTEGER AS participant_order
+        FROM tournament_runs r
+        JOIN tournament_orders t ON t.tournament_id = r.tournament_id
+        JOIN users u ON u.id = r.user_id
+        WHERE r.run_date = CURRENT_DATE
+    ),
+    quarter_matches AS (
+        SELECT
+            p.run_id,
+            p.tournament_order,
+            p.participant_order,
+            b.position,
+            b.dish_1_id,
+            b.dish_2_id,
+            CASE
+                WHEN (p.participant_order + p.tournament_order + b.position) % 2 = 0
+                    THEN b.dish_1_id
+                ELSE b.dish_2_id
+            END AS dish_winner_id
+        FROM participant_runs p
+        JOIN battles b ON b.tournament_id = p.tournament_id
+        WHERE b.phase = 'quarter'
+    ),
+    quarter_winners AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            MAX(dish_winner_id) FILTER (WHERE position = 1) AS q1_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 2) AS q2_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 3) AS q3_winner,
+            MAX(dish_winner_id) FILTER (WHERE position = 4) AS q4_winner
+        FROM quarter_matches
+        GROUP BY run_id, tournament_order, participant_order
+    ),
+    semifinal_matches AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'D1'::VARCHAR(2) AS slot,
+            q1_winner AS dish_1_id,
+            q2_winner AS dish_2_id,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN q1_winner
+                ELSE q2_winner
+            END AS dish_winner_id
+        FROM quarter_winners
+        UNION ALL
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'D2'::VARCHAR(2),
+            q3_winner,
+            q4_winner,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN q4_winner
+                ELSE q3_winner
+            END
+        FROM quarter_winners
+    ),
+    semifinal_winners AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            MAX(dish_winner_id) FILTER (WHERE slot = 'D1') AS d1_winner,
+            MAX(dish_winner_id) FILTER (WHERE slot = 'D2') AS d2_winner
+        FROM semifinal_matches
+        GROUP BY run_id, tournament_order, participant_order
+    ),
+    final_matches AS (
+        SELECT
+            run_id,
+            tournament_order,
+            participant_order,
+            'F'::VARCHAR(2) AS slot,
+            d1_winner AS dish_1_id,
+            d2_winner AS dish_2_id,
+            CASE
+                WHEN (participant_order + tournament_order) % 2 = 0 THEN d1_winner
+                ELSE d2_winner
+            END AS dish_winner_id
+        FROM semifinal_winners
+    ),
+    all_matches AS (
+        SELECT run_id, 'Q' || position AS slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM quarter_matches
+        UNION ALL
+        SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM semifinal_matches
+        UNION ALL
+        SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+        FROM final_matches
+    )
+INSERT INTO tournament_run_matches (
+    run_id,
+    slot,
+    dish_1_id,
+    dish_2_id,
+    dish_winner_id
+)
+SELECT run_id, slot, dish_1_id, dish_2_id, dish_winner_id
+FROM all_matches;
+
+COMMIT;
