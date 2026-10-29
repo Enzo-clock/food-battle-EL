@@ -73,6 +73,23 @@ class Battle
         return [$dishes[$pair[0]], $dishes[$pair[1]]];
     }
 
+    /**
+     * Battle libre déjà existante pour cette paire (dans n'importe quel ordre), avec son créateur.
+     * Sert à la création de duel : dire à l'utilisateur si le duel est nouveau ou s'il existait déjà.
+     */
+    public function findFreePair(int $dishA, int $dishB): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT b.id, b.creator_id, u.username AS creator
+             FROM battles b
+             JOIN users u ON u.id = b.creator_id
+             WHERE b.tournament_id IS NULL AND b.dish_1_id = ? AND b.dish_2_id = ?
+             ORDER BY b.id LIMIT 1'
+        );
+        $stmt->execute([min($dishA, $dishB), max($dishA, $dishB)]);
+        return $stmt->fetch() ?: null;
+    }
+
     /** Battle libre de la paire, créée au premier vote. */
     public function findOrCreateFree(int $dishA, int $dishB, int $creatorId): int
     {

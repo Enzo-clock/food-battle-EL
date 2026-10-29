@@ -85,11 +85,7 @@ $skipUrl = '/duel?' . http_build_query(['categorie' => $category]);
                 <p class="duel-side__empty">Tes votes de la session apparaîtront ici.</p>
             <?php endif ?>
         </div>
-        <div class="box duel-keys">
-            <h2 class="duel-side__title">Raccourcis</h2>
-            <p><kbd>←</kbd> plat A · <kbd>→</kbd> plat B</p>
-            <p><kbd>Espace</kbd> passer · <kbd>Entrée</kbd> suivant</p>
-        </div>
+
     </aside>
 </div>
 

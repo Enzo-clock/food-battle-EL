@@ -38,7 +38,7 @@ $voteFields = $voteFields ?? [
             . ($result ? ($isPick ? ' is-picked' : ' is-dimmed') : '');
         ?>
         <article class="<?= $classes ?>">
-            <span class="battle__letter" aria-hidden="true"><?= $letter ?></span>
+            
             <img class="battle__img tone-<?= h($tone) ?>" src="<?= h($dish['picture'] ?: $defaultPicture) ?>" alt=""
                 width="400" height="300" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/placeholder.svg'">
             <div class="battle__body">
@@ -70,7 +70,7 @@ $voteFields = $voteFields ?? [
                         <input type="hidden" name="choice" value="<?= (int) $dish['id'] ?>">
                         <button class="btn btn--block battle__vote" type="submit" data-duel-pick="<?= $side ?>"
                             aria-label="Voter pour <?= h($dish['name']) ?>">
-                            Je choisis <?= $letter ?> <kbd><?= $side === 'a' ? '←' : '→' ?></kbd>
+                            Voter
                         </button>
                     </form>
                 <?php else: ?>

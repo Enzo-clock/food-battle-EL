@@ -79,7 +79,7 @@ function filter_url(string $category, string $q): string
         <h1 class="hero__title">Deux plats.<br>Un seul gagnant.</h1>
         <p class="hero__lead">Explore les spots du quartier, note les plats et vote pour ton favori.</p>
         <div class="hero__actions">
-            <a class="btn btn--primary" href="/duel">Lancer un duel</a>
+            <a class="btn btn--primary" href="/play/tournament">Lancer un tournoi</a>
             <a class="btn btn--ghost" href="#carte">Découvrir la carte</a>
         </div>
     </div>
@@ -112,16 +112,16 @@ function filter_url(string $category, string $q): string
     <h2 id="how-title" class="section__title">Comment ça marche</h2>
     <ol class="steps">
         <li class="box box--lilac"><span class="steps__num">01</span>
-            <h3>Choisis un plat</h3>
-            <p>Parcours la carte et filtre par catégorie ou par établissement.</p>
+            <h3>Propose tes plats</h3>
+            <p>Ajoute tes restaurants et tes plats, puis crée tes propres duels et tournois.</p>
         </li>
         <li class="box box--pink"><span class="steps__num">02</span>
-            <h3>Vote et donne ton avis</h3>
-            <p>Un vote pour ton favori, une note sur 5 pour ton appréciation.</p>
+            <h3>Joue les tournois du jour</h3>
+            <p>Quarts, demies, finale : vote à chaque match et couronne ton champion !</p>
         </li>
         <li class="box box--sky"><span class="steps__num">03</span>
-            <h3>Le classement bouge</h3>
-            <p>Chaque vote compte immédiatement dans le top.</p>
+            <h3>Suis le classement</h3>
+            <p>Plus un plat va loin dans les tournois, plus il grimpe dans sa catégorie.</p>
         </li>
     </ol>
 </section>
@@ -229,9 +229,7 @@ function filter_url(string $category, string $q): string
                             </strong>
                         </p>
 
-                        <a class="btn btn--ghost btn--block" href="/plat.php?id=<?= (int) $d['id'] ?>">
-                            Découvrir
-                        </a>
+                        
                     </div>
                 </article>
             <?php endforeach ?>
