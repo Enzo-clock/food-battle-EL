@@ -189,6 +189,14 @@ VALUES
         'classement-test-2@foodbattle.local',
         '!disabled-test-account!',
         'user'
+    ),
+    (
+        'admin',
+        'Go',
+        'admin',
+        'admin@email.com',
+        '$2y$12$yNX0rzMUe7BY0DgKXFMHp.nzD65mdO3ajrZHl2lJPA83grN4u8irC',
+        'admin'
     );
 
 INSERT INTO
