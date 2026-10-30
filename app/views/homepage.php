@@ -17,10 +17,10 @@ if (!array_key_exists($cat, $categories)) {
 
 $stats = $db->query(
     "SELECT
-        (SELECT COUNT(*) FROM active_dishes) AS dishes,
-        (SELECT COUNT(*) FROM establishments WHERE status = 'approved') AS establishments,
-        (SELECT COUNT(*) FROM categories WHERE status = 'approved') AS categories"
-)->fetch();
+        (SELECT COUNT(*) FROM dishes) AS dishes,
+        (SELECT COUNT(*) FROM battles) AS battles,
+        (SELECT COUNT(*) FROM tournaments) AS tournaments"
+)->fetch(PDO::FETCH_ASSOC);
 
 $sql = "
     SELECT
@@ -77,7 +77,7 @@ function filter_url(string $category, string $q): string
 <section class="hero">
     <div class="hero__text">
         <h1 class="hero__title">Deux plats.<br>Un seul gagnant.</h1>
-        <p class="hero__lead">Explore les spots du quartier, note les plats et vote pour ton favori.</p>
+        <p class="hero__lead">Parcours les plats, fais-les s'affronter et vote pour ton favori !</p>
         <div class="hero__actions">
             <a class="btn btn--primary" href="/play/tournament">Lancer un tournoi</a>
             <a class="btn btn--ghost" href="/tirage">Mon plat du jour… ?</a>
@@ -101,9 +101,20 @@ function filter_url(string $category, string $q): string
 
 <section class="band" aria-label="Chiffres clés">
     <div class="band__inner">
-        <p><strong><?= (int) $stats['dishes'] ?></strong><span>plats<br>en compétition</span></p>
-        <p><strong><?= (int) $stats['establishments'] ?></strong><span>établissements<br>du quartier</span></p>
-        <p><strong><?= (int) $stats['categories'] ?></strong><span>catégories<br>de plats</span></p>
+<p>
+    <strong><?= (int) $stats['dishes'] ?></strong>
+    <span>plats<br>créés</span>
+</p>
+
+<p>
+    <strong><?= (int) $stats['battles'] ?></strong>
+    <span>duels<br>créés</span>
+</p>
+
+<p>
+    <strong><?= (int) $stats['tournaments'] ?></strong>
+    <span>tournois<br>créés</span>
+</p>
 
     </div>
 </section>
