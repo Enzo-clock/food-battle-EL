@@ -80,8 +80,8 @@ require_once __DIR__ . '/../includes/header.php';
             <svg class="draw__deco draw__deco--sun" viewBox="-50 -50 100 100" aria-hidden="true">
                 <polygon points="<?= $star(32, 48, 30) ?>" />
             </svg>
-            <span class="draw__deco draw__deco--dot draw__deco--dot-a" aria-hidden="true"></span>
-            <span class="draw__deco draw__deco--dot draw__deco--dot-b" aria-hidden="true"></span>
+            <span class="draw__deco draw__deco--ask draw__deco--ask-a" aria-hidden="true">?</span>
+            <span class="draw__deco draw__deco--ask draw__deco--ask-b" aria-hidden="true">?</span>
 
             <svg class="draw__burst" viewBox="-100 -100 200 200" aria-hidden="true">
                 <polygon points="<?= $star(28, 98, 64) ?>" />

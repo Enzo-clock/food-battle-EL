@@ -12,10 +12,10 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <section class="box prose__block" aria-labelledby="editeur">
         <h2 id="editeur">Éditeur du site</h2>
-        <p>Projet réalisé par [Prénom Nom] et [Prénom Nom], apprenants en formation Concepteur Développeur
-            d’Applications à [nom de l’organisme de formation, ville].</p>
+        <p>Projet réalisé par Enzo Gohard et Liamine Djellali, apprenants en formation Concepteur Développeur
+            d’Applications à Simplon.</p>
         <p>Contact : <a href="/contact">page Contact</a>.</p>
-        <p><strong>Directeur de la publication :</strong> [Prénom Nom].</p>
+        <p><strong>Directeurs de la publication :</strong> Enzo & Liamine.</p>
     </section>
 
     <section class="box prose__block" aria-labelledby="hebergeur">
@@ -39,7 +39,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <a href="/confidentialite">Confidentialité (RGPD)</a>.</p>
     </section>
 
-    <p class="prose__updated">Dernière mise à jour : [date].</p>
+    <p class="prose__updated">Dernière mise à jour : 29/10/2026.</p>
 </article>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
